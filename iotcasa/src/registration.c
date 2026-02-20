@@ -189,14 +189,8 @@ void casa_registration(void)
                     casa_ctx.registration->current_op  = REG_WIFI_MQTT_INIT;
                     break;
                 }
-            } else {
-//                reg_resp_handler(reg_req_rcv);
-
-//                if ( casa_message_parser(casa_ctx.registration->udp_buffer, strlen(casa_ctx.registration->udp_buffer))) {
-//                    casa_ctx.registration->current_op  = REG_WIFI_MQTT_INIT;
-//                    break;
-//                }
             }
+
             casa_ctx.registration->current_op  = REGISTRATION_FINAL;
             break;
         }

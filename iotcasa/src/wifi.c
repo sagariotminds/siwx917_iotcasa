@@ -296,18 +296,23 @@ bool wifi_sta(const char *ssid, const char *password)
   }
   LOG_INFO("WIFI", "Attempting to connect to %s...", ssid);
 
+  status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_PROFILE_ID_1);
+  if (status != SL_STATUS_OK) {
+      LOG_ERROR("WIFI", "sl_net_up error : 0x%lx", status);
+      return false;
+  }
+
   osThreadNew(wifi_sta_monitor_task, NULL, &thread_attributes);
   int retry_count = 0;
   while (1) {
-      status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_PROFILE_ID_1);
-      if (status == SL_STATUS_OK) {
+      if (casa_wifi_status.is_connected) {
           LOG_INFO("WIFI", "Connected Successfully!");
           is_wifi_connected = true;
           break; // Exit retry loop
       } else {
           retry_count++;
           LOG_WARN("WIFI", "Connection failed (0x%lx). Retry %d/%d...", status, retry_count, WIFI_MAXIMUM_RETRY);
-          osDelay(500); // Give the stack time to breathe
+          osDelay(1000); // Give the stack time to breathe
       }
       if (retry_count > WIFI_MAXIMUM_RETRY) {
           return false;
@@ -412,7 +417,7 @@ void wifi_sta_monitor_task(void *argument)
           internet_status = 0;
 
           sl_net_down(SL_NET_WIFI_CLIENT_INTERFACE);
-          osDelay(5000);
+          osDelay(2000);
 
           sl_status_t status = sl_net_set_profile(SL_NET_WIFI_CLIENT_INTERFACE,
                                       SL_NET_DEFAULT_WIFI_CLIENT_PROFILE_ID,
@@ -432,7 +437,7 @@ void wifi_sta_monitor_task(void *argument)
           } else {
             // If you get 0x21 here, it means my_sta_config_variable is empty or credential was lost
             LOG_ERROR("WIFI", "Join failed (0x%lx). Retrying in 5s...", join_status);
-            osDelay(10000);
+            osDelay(5000);
           }
       }
   }

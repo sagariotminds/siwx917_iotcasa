@@ -181,9 +181,10 @@ void mqtt_event_handler(void *client, sl_mqtt_client_event_t event,
 //      LOG_INFO("MQTT", "MQTT event Connected");
       mqtt_connection_check = 1;
       mqtt_subscribe_pending = true;
+      casa_ctx.mqtt_ssl_connection = 1;
 
       // Subscribe with callback
-//      sl_mqtt_client_subscribe(client, (uint8_t *)TOPIC_TO_BE_SUBSCRIBED, strlen(TOPIC_TO_BE_SUBSCRIBED), QOS_OF_SUBSCRIPTION, 0, mqtt_message_callback, NULL);
+//      sl_mqtt_client_subscribe(client, (uint8_t *)mqtt_sub_topic, strlen(mqtt_sub_topic), QOS_OF_SUBSCRIPTION, 0, mqtt_message_callback, NULL);
       break;
 
     case SL_MQTT_CLIENT_MESSAGE_PUBLISHED_EVENT:
@@ -198,12 +199,14 @@ void mqtt_event_handler(void *client, sl_mqtt_client_event_t event,
 //      LOG_INFO("MQTT", "MQTT Disconnected");
       mqtt_connection_check = 0;
       mqtt_subscribe_pending = false;
+      casa_ctx.mqtt_ssl_connection = 0;
       break;
 
     case SL_MQTT_CLIENT_ERROR_EVENT:
 //      LOG_ERROR("MQTT", "MQTT Error");
       mqtt_connection_check = 0;
       mqtt_subscribe_pending = false;
+      casa_ctx.mqtt_ssl_connection = 0;
       break;
 
     default:
@@ -353,12 +356,14 @@ bool mqtt_secure_config(bool input)
 bool mqtt_app_start(void)
 {
   if (!mqtt_secure_config(true)) {
+      printf("mqtt_secure_config()\r\n");
           return false;
   }
   int retry_count = 0;
   while (retry_count < MQTT_CONN_RETRY_LIMIT) {
       if(mqtt_connection_check) {
           LOG_INFO("MQTT", "MQTT Connected");
+          sl_mqtt_client_subscribe(&mqtt_client, (uint8_t *)mqtt_sub_topic, strlen(mqtt_sub_topic), QOS_OF_SUBSCRIPTION, 0, mqtt_message_callback, NULL);
           return true;
       } else {
           LOG_INFO("MQTT", "MQTT Trying to connect...");
@@ -397,6 +402,20 @@ void mqtt_reconnection_check(void *arg)
                   } else {
                     LOG_WARN("MQTT", "Subscribe request failed (%d), retrying", msg_id);
                   }
+
+                  msg_id = sl_mqtt_client_subscribe(&mqtt_client,
+                                                          (uint8_t *)mqtt_sub_topic,
+                                                          strlen(mqtt_sub_topic),
+                                                          QOS_OF_SUBSCRIPTION,
+                                                          0,
+                                                          mqtt_message_callback,
+                                                          NULL);
+                    if (msg_id >= 0) {
+                      LOG_INFO("MQTT", "Subscribed successfully (msg_id=%d)", msg_id);
+                      mqtt_subscribe_pending = false;
+                    } else {
+                      LOG_WARN("MQTT", "Subscribe request failed (%d), retrying", msg_id);
+                    }
                 }
               char message_payload[128];
               snprintf(message_payload, sizeof(message_payload), "%s%lu", PUBLISH_MESSAGE_BASE, counter++);

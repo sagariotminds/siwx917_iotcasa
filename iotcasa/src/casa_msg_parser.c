@@ -130,45 +130,45 @@ int cloud_mqtt_reg_json_parser(cJSON *json_parse)
     LOG_INFO("PARSE", "Execution: SUCCESS - Reg Status Code: %d", casa_ctx.registration->cloud_mqtt_reg_status);
 
     // 2. Check for FOTA URL
-    cJSON *url = cJSON_GetObjectItemCaseSensitive(json_parse, "url");
-
-    if (!cJSON_IsString(url) || (url->valuestring == NULL)) {
-        LOG_WARN("PARSE", "Execution: NOTICE - No FOTA URL in this response");
-    } else {
-        // Safe Memory Allocation for FOTA context
-//        if (casa_ctx.fota_update == NULL) {
-//            casa_ctx.fota_update = (fota_context_t*) malloc(sizeof(fota_context_t));
-//        }
+//    cJSON *url = cJSON_GetObjectItemCaseSensitive(json_parse, "url");
 //
-//        if (casa_ctx.fota_update == NULL) {
-//            LOG_ERROR("SYS", "Execution: Malloc failed for FOTA context");
-//            return FAIL;
-//        }
-//
-//        // --- FIXED ORDER ---
-//        // Initialize memory BEFORE assigning parsed values
-//        memset(casa_ctx.fota_update, 0, sizeof(fota_context_t));
-//
-//        // 3. Extract 'source'
-//        cJSON *src_json = cJSON_GetObjectItem(json_parse, "source");
-//        casa_ctx.url_src = (src_json != NULL) ? src_json->valueint : 0;
-//
-//        // 4. Extract 'requestId'
-//        // Note: Structure uses long long, cJSON uses valuedouble for large numbers
-//        cJSON *req_id = cJSON_GetObjectItem(json_parse, "requestId");
-//        if (req_id != NULL) {
-//            casa_ctx.fota_update->requestId = (long long)req_id->valuedouble;
-//        }
-//
-//        // 5. Secure String Copy to fota_context_t
-//        fota_url = url->valuestring;
-//        strncpy(casa_ctx.fota_update->fota_url, fota_url, sizeof(casa_ctx.fota_update->fota_url) - 1);
-//
-//        // Update the flag in your new registration structure
-//        casa_ctx.registration->reg_fota_status = 1;
-//
-//        LOG_INFO("PARSE", "Execution: FOTA URL saved for RequestID: %lld", casa_ctx.fota_update->requestId);
-    }
+//    if (!cJSON_IsString(url) || (url->valuestring == NULL)) {
+//        LOG_WARN("PARSE", "Execution: NOTICE - No FOTA URL in this response");
+//    } else {
+//        // Safe Memory Allocation for FOTA context
+////        if (casa_ctx.fota_update == NULL) {
+////            casa_ctx.fota_update = (fota_context_t*) malloc(sizeof(fota_context_t));
+////        }
+////
+////        if (casa_ctx.fota_update == NULL) {
+////            LOG_ERROR("SYS", "Execution: Malloc failed for FOTA context");
+////            return FAIL;
+////        }
+////
+////        // --- FIXED ORDER ---
+////        // Initialize memory BEFORE assigning parsed values
+////        memset(casa_ctx.fota_update, 0, sizeof(fota_context_t));
+////
+////        // 3. Extract 'source'
+////        cJSON *src_json = cJSON_GetObjectItem(json_parse, "source");
+////        casa_ctx.url_src = (src_json != NULL) ? src_json->valueint : 0;
+////
+////        // 4. Extract 'requestId'
+////        // Note: Structure uses long long, cJSON uses valuedouble for large numbers
+////        cJSON *req_id = cJSON_GetObjectItem(json_parse, "requestId");
+////        if (req_id != NULL) {
+////            casa_ctx.fota_update->requestId = (long long)req_id->valuedouble;
+////        }
+////
+////        // 5. Secure String Copy to fota_context_t
+////        fota_url = url->valuestring;
+////        strncpy(casa_ctx.fota_update->fota_url, fota_url, sizeof(casa_ctx.fota_update->fota_url) - 1);
+////
+////        // Update the flag in your new registration structure
+////        casa_ctx.registration->reg_fota_status = 1;
+////
+////        LOG_INFO("PARSE", "Execution: FOTA URL saved for RequestID: %lld", casa_ctx.fota_update->requestId);
+//    }
 
     return PARSE_SUCCESS;
 }
