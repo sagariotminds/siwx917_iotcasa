@@ -221,13 +221,13 @@ void casa_registration(void)
             construct_mqtt_device_log_pub_topic();
             casa_ctx.registration->current_op = WAIT;
 
-//            if ( mqtt_app_start() && casa_ctx.mqtt_ssl_connection == true) {
-//               casa_ctx.registration->current_op = REG_DEVICE_DETAILS_SHARING;
-//            } else if (casa_ctx.mqtt_ssl_connection == false  && mqtt_connection_check == true){
-//               casa_ctx.registration->current_op = REGISTRATION_FOTA_UPDATE_CHECK;
-//            } else {
-//                casa_ctx.registration->current_op = REGISTRATION_FINAL;
-//            }
+            if ( mqtt_app_start() && casa_ctx.mqtt_ssl_connection == true) {
+               casa_ctx.registration->current_op = REG_DEVICE_DETAILS_SHARING;
+            } else if (casa_ctx.mqtt_ssl_connection == false  && mqtt_connection_check == true){
+               casa_ctx.registration->current_op = REGISTRATION_FOTA_UPDATE_CHECK;
+            } else {
+                casa_ctx.registration->current_op = REGISTRATION_FINAL;
+            }
             break;
         }
 
@@ -297,46 +297,46 @@ void casa_registration(void)
 
         case REGISTRATION_FINAL:
         {
-//            if(casa_ctx.reg_status != REGISTRATION_DONE)
-//            {
-//                create_discovery_resp_to_mobile(reg_final_response, CODE_FAILED, FAILED);
-//
-//                if (strlen(casa_ctx.registration->ble_buffer) != 0) {
-//                    rsi_ble_send_json_response(reg_final_response);
-//                    osDelay(DELAY_2000S);
-////                } else {
-////                    reg_resp_handler(reg_final_response);
-//                }
-//                mqtt_app_close();
-//                osDelay(DELAY_2000S);
-////                udp_close();
-//                wifi_close();
-////                gpio_set_level(WIFI_STATUS_LED_GPIO, HIGH);
-//                mqtt_connection_check = false;
-//            } else if (casa_ctx.reg_status == REGISTRATION_DONE) {
-//                sl_net_down(SL_NET_WIFI_AP_INTERFACE);
-//                sl_wifi_stop_ap(SL_WIFI_AP_INTERFACE);
+            if(casa_ctx.reg_status != REGISTRATION_DONE)
+            {
+                create_discovery_resp_to_mobile(reg_final_response, CODE_FAILED, FAILED);
+
+                if (strlen(casa_ctx.registration->ble_buffer) != 0) {
+                    rsi_ble_send_json_response(reg_final_response);
+                    osDelay(DELAY_2000S);
+//                } else {
+//                    reg_resp_handler(reg_final_response);
+                }
+                mqtt_app_close();
+                osDelay(DELAY_2000S);
+//                udp_close();
+                wifi_close();
+//                gpio_set_level(WIFI_STATUS_LED_GPIO, HIGH);
+                mqtt_connection_check = false;
+            } else if (casa_ctx.reg_status == REGISTRATION_DONE) {
+                sl_net_down(SL_NET_WIFI_AP_INTERFACE);
+                sl_wifi_stop_ap(SL_WIFI_AP_INTERFACE);
+            }
+
+            osDelay(DELAY_2000S);
+            stop_ble_service();
+//            if(casa_ctx.reg_status == REGISTRATION_DONE) {
+//                udp_close();
 //            }
-//
-//            osDelay(DELAY_2000S);
-//            stop_ble_service();
-////            if(casa_ctx.reg_status == REGISTRATION_DONE) {
-////                udp_close();
-////            }
-//            casa_ctx.switch_interrupts = ENABLE;
-//            casa_ctx.reg_dereg_flag = false;
-//            ssl_connection_error = false;
-//            if(casa_ctx.registration->reg_fota_status == 1) {
-////                casa_ctx.fota_status = FOTA_INIT;
-//                casa_ctx.switch_interrupts = DISABLE;
-//                casa_ctx.current_operation = FOTA_UPDATE;
-//            } else {
-//                casa_ctx.current_operation = CASA_IDLE;
-//            }
-//            free(casa_ctx.registration);
-//            casa_ctx.registration = NULL;
-//            casa_ctx.Reset_reason = 0;
-////            LOG_INFO("REG","End [APP] Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
+            casa_ctx.switch_interrupts = ENABLE;
+            casa_ctx.reg_dereg_flag = false;
+            ssl_connection_error = false;
+            if(casa_ctx.registration->reg_fota_status == 1) {
+//                casa_ctx.fota_status = FOTA_INIT;
+                casa_ctx.switch_interrupts = DISABLE;
+                casa_ctx.current_operation = FOTA_UPDATE;
+            } else {
+                casa_ctx.current_operation = CASA_IDLE;
+            }
+            free(casa_ctx.registration);
+            casa_ctx.registration = NULL;
+            casa_ctx.Reset_reason = 0;
+//            LOG_INFO("REG","End [APP] Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
             break;
         }
 

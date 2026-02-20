@@ -90,9 +90,9 @@ void app_init(const void *unused)
   gpio_init();
   nvm3_eeprom_init();
 
-  wifi_sta("YOUR_AP_SSID", "YOUR_AP_PASSPHRASE");
+//  wifi_sta("YOUR_AP_SSID", "YOUR_AP_PASSPHRASE");
 
-//  casa_ctx.current_operation = REGISTRATION;
+  casa_ctx.current_operation = REGISTRATION;
 }
 
 void app_process_action()

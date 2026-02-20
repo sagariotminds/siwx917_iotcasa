@@ -352,7 +352,7 @@ static int32_t rsi_ble_app_get_event(void)
 static void rsi_ble_on_connect_event(rsi_ble_event_conn_status_t *resp_conn)
 {
   memcpy(&conn_event_to_app, resp_conn, sizeof(rsi_ble_event_conn_status_t));
-  LOG_INFO("BLE", "BLE Connect Event");
+//  LOG_INFO("BLE", "BLE Connect Event");
   rsi_ble_app_set_event(RSI_BLE_CONN_EVENT);
 }
 
@@ -360,7 +360,7 @@ static void rsi_ble_on_disconnect_event(rsi_ble_event_disconnect_t *resp_disconn
 {
   UNUSED_PARAMETER(reason); //This statement is added only to resolve compilation warning, value is unchanged
   memcpy(&disconn_event_to_app, resp_disconnect, sizeof(rsi_ble_event_disconnect_t));
-  LOG_INFO("BLE", "BLE Disconnect Event");
+//  LOG_INFO("BLE", "BLE Disconnect Event");
   rsi_ble_app_set_event(RSI_BLE_DISCONN_EVENT);
 }
 
@@ -369,7 +369,7 @@ void rsi_ble_on_enhance_conn_status_event(rsi_ble_event_enhance_conn_status_t *r
   conn_event_to_app.dev_addr_type = resp_enh_conn->dev_addr_type;
   memcpy(conn_event_to_app.dev_addr, resp_enh_conn->dev_addr, RSI_DEV_ADDR_LEN);
   conn_event_to_app.status = resp_enh_conn->status;
-  LOG_DEBUG("BLE", "BLE Enhanced Connection Status Event");
+//  LOG_DEBUG("BLE", "BLE Enhanced Connection Status Event");
   rsi_ble_app_set_event(RSI_BLE_CONN_EVENT);
 }
 
@@ -377,7 +377,7 @@ static void rsi_ble_on_gatt_write_event(uint16_t event_id, rsi_ble_event_write_t
 {
   UNUSED_PARAMETER(event_id); //This statement is added only to resolve compilation warning, value is unchanged
   memcpy(&app_ble_write_event, rsi_ble_write, sizeof(rsi_ble_event_write_t));
-  LOG_DEBUG("BLE", "Data received from mobile app");
+//  LOG_DEBUG("BLE", "Data received from mobile app");
   rsi_ble_app_set_event(RSI_BLE_GATT_WRITE_EVENT);
 }
 
@@ -385,7 +385,7 @@ static void rsi_ble_on_read_req_event(uint16_t event_id, rsi_ble_read_req_t *rsi
 {
   UNUSED_PARAMETER(event_id); //This statement is added only to resolve compilation warning, value is unchanged
   memcpy(&app_ble_read_event, rsi_ble_read_req, sizeof(rsi_ble_read_req_t));
-  LOG_DEBUG("BLE", "Read request from mobile app");
+//  LOG_DEBUG("BLE", "Read request from mobile app");
   rsi_ble_app_set_event(RSI_BLE_READ_REQ_EVENT);
 }
 
@@ -393,7 +393,7 @@ static void rsi_ble_gatt_error_event(uint16_t resp_status, rsi_ble_event_error_r
 {
   UNUSED_PARAMETER(resp_status); //This statement is added only to resolve compilation warning, value is unchanged
   memcpy(remote_dev_bd_addr, rsi_ble_gatt_error->dev_addr, 6);
-  LOG_ERROR("BLE", "BLE GATT Error Event");
+//  LOG_ERROR("BLE", "BLE GATT Error Event");
   rsi_ble_app_set_event(RSI_BLE_GATT_ERROR);
 }
 
@@ -490,6 +490,11 @@ void casa_ble_process(void)
 
       // Check if the write is on the correct attribute handle
       if ((*(uint16_t *)app_ble_write_event.handle) == rsi_ble_att1_val_hndl) {
+          if (casa_ctx.registration == NULL) {
+                    LOG_ERROR("BLE", "Registration context unavailable; ignoring BLE write");
+            rsi_ble_gatt_write_response(conn_event_to_app.dev_addr, 0);
+            break;
+          }
         uint16_t length = app_ble_write_event.length;
         uint8_t *incoming_data = app_ble_write_event.att_value;
 
@@ -503,7 +508,7 @@ void casa_ble_process(void)
           uint8_t c = incoming_data[i];
 
           // 1. Filter out whitespace/junk
-          if (c == '\n' || c == '\r' || c == '\t' || c == ' ') continue;
+          if (c == '\n' || c == '\r' || c == '\t') continue;
 
           // 2. Start of JSON detection
           if (c == '{') {

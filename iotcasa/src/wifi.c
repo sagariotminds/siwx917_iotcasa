@@ -356,7 +356,7 @@ void wifi_sta_monitor_task(void *argument)
   UNUSED_PARAMETER(argument);
 
   printf("thread is created wifi\r\n");
-  int mqtt_started = 1;
+//  int mqtt_started = 1;
 
   while (1) {
       int32_t rssi = 0;
@@ -390,10 +390,10 @@ void wifi_sta_monitor_task(void *argument)
               LOG_INFO("WIFI", "Internet OK ✅");
               internet_status = 1;
 
-              if(mqtt_started) {
-                  mqtt_connection_task_create();
-                  mqtt_started = 0;
-              }
+//              if(mqtt_started) {
+//                  mqtt_connection_task_create();
+//                  mqtt_started = 0;
+//              }
           } else {
               LOG_ERROR("WIFI", "No Internet ❌");
               internet_status = 0;

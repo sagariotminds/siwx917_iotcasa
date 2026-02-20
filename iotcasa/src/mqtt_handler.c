@@ -19,6 +19,7 @@
 #include "mqtt_handler.h"
 #include "gpio_control.h"
 #include "casa_module.h"
+#include "casa_msg_parser.h"
 
 static const char *TAG = "MQTTS";
 
@@ -50,6 +51,7 @@ static const char *TAG = "MQTTS";
 #define KEEP_ALIVE_INTERVAL    60
 #define MQTT_CONNECT_TIMEOUT   5000
 #define MQTT_KEEPALIVE_RETRIES 3
+#define MQTT_RX_PARSE_BUF_LEN  2048
 
 #define USERNAME "ihkkclcq:ihkkclcq"
 #define PASSWORD "iE6uMQPeFgvHDic4kJpEoyboCsPDr1rs"
@@ -63,6 +65,9 @@ char device_log_topic_pub[LOG_TPOIC_LEN] = {'\0'};                              
 char lastwill_buf[DEVICE_STATUS_JSON_LEN] = {'\0'};                                    /* Last will Offline and online updated JSON*/
 char fota_tls_topic_pub[MQTT_TOPIC_LEN] = {'\0'};                                      /* Fota MQTT publish topic data buffer */
 char fota_tls_topic_sub[MQTT_TOPIC_LEN] = {'\0'};                                      /* Fota MQTT subscibe topic data buffer */
+
+/* MQTT callbacks may run in Si91x async RX context; defer heavy work to app task. */
+static volatile bool mqtt_subscribe_pending = false;
 
 bool device_status_report = 1;
 extern casa_context_t casa_ctx;
@@ -138,8 +143,25 @@ void mqtt_message_callback(void *client, sl_mqtt_client_message_t *message, void
   UNUSED_PARAMETER(client);
   UNUSED_PARAMETER(context);
 
-  LOG_INFO("MQTT", "TOPIC=%.*s", message->topic_length, message->topic);
-  LOG_INFO("MQTT", "DATA=%.*s", message->content_length, message->content);
+//  LOG_INFO("MQTT", "TOPIC=%.*s", message->topic_length, message->topic);
+//  LOG_INFO("MQTT", "DATA=%.*s", message->content_length, message->content);
+  if (message == NULL || message->content == NULL || message->content_length == 0) {
+     LOG_WARN("MQTT", "Received empty MQTT payload");
+     return;
+   }
+
+   if (message->content_length >= MQTT_RX_PARSE_BUF_LEN) {
+     LOG_ERROR("MQTT", "MQTT payload too large for parser buffer (%u)", (unsigned int)message->content_length);
+     return;
+   }
+
+   char mqtt_json_buf[MQTT_RX_PARSE_BUF_LEN] = {0};
+   memcpy(mqtt_json_buf, message->content, message->content_length);
+   mqtt_json_buf[message->content_length] = '\0';
+
+   if (!casa_message_parser(mqtt_json_buf, (int)message->content_length)) {
+     LOG_ERROR("MQTT", "MQTT payload parser failed");
+   }
 
 }
 
@@ -156,29 +178,32 @@ void mqtt_event_handler(void *client, sl_mqtt_client_event_t event,
 
   switch (event) {
     case SL_MQTT_CLIENT_CONNECTED_EVENT:
-      LOG_INFO("MQTT", "MQTT event Connected");
+//      LOG_INFO("MQTT", "MQTT event Connected");
       mqtt_connection_check = 1;
+      mqtt_subscribe_pending = true;
 
       // Subscribe with callback
-      sl_mqtt_client_subscribe(client, (uint8_t *)TOPIC_TO_BE_SUBSCRIBED, strlen(TOPIC_TO_BE_SUBSCRIBED), QOS_OF_SUBSCRIPTION, 0, mqtt_message_callback, NULL);
+//      sl_mqtt_client_subscribe(client, (uint8_t *)TOPIC_TO_BE_SUBSCRIBED, strlen(TOPIC_TO_BE_SUBSCRIBED), QOS_OF_SUBSCRIPTION, 0, mqtt_message_callback, NULL);
       break;
 
     case SL_MQTT_CLIENT_MESSAGE_PUBLISHED_EVENT:
-      LOG_INFO("MQTT", "Message Published");
+//      LOG_INFO("MQTT", "Message Published");
       break;
 
     case SL_MQTT_CLIENT_SUBSCRIBED_EVENT:
-      LOG_INFO("MQTT", "Subscribed successfully");
+//      LOG_INFO("MQTT", "Subscribed successfully");
       break;
 
     case SL_MQTT_CLIENT_DISCONNECTED_EVENT:
-      LOG_INFO("MQTT", "MQTT Disconnected");
+//      LOG_INFO("MQTT", "MQTT Disconnected");
       mqtt_connection_check = 0;
+      mqtt_subscribe_pending = false;
       break;
 
     case SL_MQTT_CLIENT_ERROR_EVENT:
-      LOG_ERROR("MQTT", "MQTT Error");
+//      LOG_ERROR("MQTT", "MQTT Error");
       mqtt_connection_check = 0;
+      mqtt_subscribe_pending = false;
       break;
 
     default:
@@ -357,6 +382,22 @@ void mqtt_reconnection_check(void *arg)
                 mqtt_app_start();
             }
             if(mqtt_connection_check) {
+
+                if (mqtt_subscribe_pending) {
+                  int msg_id = sl_mqtt_client_subscribe(&mqtt_client,
+                                                        (uint8_t *)TOPIC_TO_BE_SUBSCRIBED,
+                                                        strlen(TOPIC_TO_BE_SUBSCRIBED),
+                                                        QOS_OF_SUBSCRIPTION,
+                                                        0,
+                                                        mqtt_message_callback,
+                                                        NULL);
+                  if (msg_id >= 0) {
+                    LOG_INFO("MQTT", "Subscribed successfully (msg_id=%d)", msg_id);
+                    mqtt_subscribe_pending = false;
+                  } else {
+                    LOG_WARN("MQTT", "Subscribe request failed (%d), retrying", msg_id);
+                  }
+                }
               char message_payload[128];
               snprintf(message_payload, sizeof(message_payload), "%s%lu", PUBLISH_MESSAGE_BASE, counter++);
 
