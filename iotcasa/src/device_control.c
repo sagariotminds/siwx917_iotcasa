@@ -26,7 +26,9 @@ device_control_context_t device_control = { 0 };
 
 void casa_device_status_update(void)
 {
-    if (casa_ctx.reg_status == REGISTRATION_DONE) {
+  printf("casa_device_status_update %d\r\n",casa_ctx.reg_status);
+  if (casa_ctx.reg_status == REGISTRATION_DONE) {
+      printf("casa_ctx.reg_status %d\r\n",casa_ctx.reg_status);
         int endpoint = device_control.endpoint_info[0].endpoint - 1;
         if(mqtt_connection_check == true ) {
             device_control.call_type = 0;
@@ -51,7 +53,9 @@ void casa_device_status_update(void)
                 LOG_ERROR(TAG, "Endpoint : %d timer cancelled",endpoint + 1);
             }
         }
+        printf("internet_status %d\r\n",internet_status);
         if(internet_status == true) {
+            printf("internet_status %d\r\n",internet_status);
             construct_status_update_json();
         }
     }

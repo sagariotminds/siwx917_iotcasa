@@ -107,7 +107,8 @@ void log_write(log_level_t level, const char *tag, const char *fmt, ...)
   }
 
   /* Format user message - increased buffer for large payloads like JSON */
-  char msg_buf[1024];
+//  char msg_buf[1024];
+  char msg_buf[256];
   va_list ap;
   va_start(ap, fmt);
   vsnprintf(msg_buf, sizeof(msg_buf), fmt, ap);

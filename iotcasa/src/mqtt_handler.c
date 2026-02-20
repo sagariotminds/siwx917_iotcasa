@@ -69,6 +69,10 @@ char fota_tls_topic_sub[MQTT_TOPIC_LEN] = {'\0'};                               
 /* MQTT callbacks may run in Si91x async RX context; defer heavy work to app task. */
 static volatile bool mqtt_subscribe_pending = false;
 
+static volatile bool mqtt_rx_message_pending = false;
+static volatile uint16_t mqtt_rx_message_len = 0;
+static char mqtt_rx_parse_buf[MQTT_RX_PARSE_BUF_LEN] = {0};
+
 bool device_status_report = 1;
 extern casa_context_t casa_ctx;
 
@@ -146,22 +150,29 @@ void mqtt_message_callback(void *client, sl_mqtt_client_message_t *message, void
 //  LOG_INFO("MQTT", "TOPIC=%.*s", message->topic_length, message->topic);
 //  LOG_INFO("MQTT", "DATA=%.*s", message->content_length, message->content);
   if (message == NULL || message->content == NULL || message->content_length == 0) {
-     LOG_WARN("MQTT", "Received empty MQTT payload");
+//     LOG_WARN("MQTT", "Received empty MQTT payload");
      return;
    }
 
    if (message->content_length >= MQTT_RX_PARSE_BUF_LEN) {
-     LOG_ERROR("MQTT", "MQTT payload too large for parser buffer (%u)", (unsigned int)message->content_length);
+//     LOG_ERROR("MQTT", "MQTT payload too large for parser buffer (%u)", (unsigned int)message->content_length);
      return;
    }
 
-   char mqtt_json_buf[MQTT_RX_PARSE_BUF_LEN] = {0};
-   memcpy(mqtt_json_buf, message->content, message->content_length);
-   mqtt_json_buf[message->content_length] = '\0';
+//   char mqtt_json_buf[MQTT_RX_PARSE_BUF_LEN] = {0};
+//   memcpy(mqtt_json_buf, message->content, message->content_length);
+//   mqtt_json_buf[message->content_length] = '\0';
+   if (mqtt_rx_message_pending) {
+       return;
+     }
 
-   if (!casa_message_parser(mqtt_json_buf, (int)message->content_length)) {
-     LOG_ERROR("MQTT", "MQTT payload parser failed");
-   }
+//   if (!casa_message_parser(mqtt_json_buf, (int)message->content_length)) {
+//     LOG_ERROR("MQTT", "MQTT payload parser failed");
+//   }
+   memcpy(mqtt_rx_parse_buf, message->content, message->content_length);
+   mqtt_rx_parse_buf[message->content_length] = '\0';
+   mqtt_rx_message_len = message->content_length;
+   mqtt_rx_message_pending = true;
 
 }
 
@@ -387,6 +398,15 @@ void mqtt_reconnection_check(void *arg)
                 mqtt_app_start();
             }
             if(mqtt_connection_check) {
+                if (mqtt_rx_message_pending) {
+                    printf("received JSON : %s\r\n",mqtt_rx_parse_buf);
+                    if (!casa_message_parser(mqtt_rx_parse_buf, (int)mqtt_rx_message_len)) {
+                        LOG_ERROR("MQTT", "MQTT payload parser failed");
+                    }
+                    mqtt_rx_parse_buf[0] = '\0';
+                    mqtt_rx_message_len = 0;
+                    mqtt_rx_message_pending = false;
+                }
 
                 if (mqtt_subscribe_pending) {
                   int msg_id = sl_mqtt_client_subscribe(&mqtt_client,

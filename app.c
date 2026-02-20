@@ -97,7 +97,7 @@ void app_init(const void *unused)
 
 void app_process_action()
 {
-  printf("This is app process action loop.\r\n");
+//  printf("This is app process action loop.\r\n");
   casa_ble_process();
 
   switch (casa_ctx.current_operation)

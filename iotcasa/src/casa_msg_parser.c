@@ -41,7 +41,9 @@ int registration_udp_ble_parser(cJSON *json_parse)
 //        construct_mqtt_device_log_msg(E_WIFI_SSID,L_REGISTRATION);
         return FAIL;
     }
-    strncpy(casa_ctx.ssid, ssid_json->valuestring, strlen(ssid_json->valuestring));
+//    strncpy(casa_ctx.ssid, ssid_json->valuestring, strlen(ssid_json->valuestring));
+    memset(casa_ctx.ssid, '\0', sizeof(casa_ctx.ssid));
+    snprintf(casa_ctx.ssid, sizeof(casa_ctx.ssid), "%s", ssid_json->valuestring);
     LOG_INFO("PARSER", "SSID: %s", casa_ctx.ssid);
 
     cJSON *pwd_json = cJSON_GetObjectItem(json_parse, "password");                                    /* parsing wifi password  to casa struct */
@@ -50,7 +52,9 @@ int registration_udp_ble_parser(cJSON *json_parse)
 //        construct_mqtt_device_log_msg(E_WIFI_PWD,L_REGISTRATION);
         return FAIL;
     }
-    strncpy(casa_ctx.password, pwd_json->valuestring, strlen(pwd_json->valuestring));
+//    strncpy(casa_ctx.password, pwd_json->valuestring, strlen(pwd_json->valuestring));
+    memset(casa_ctx.password, '\0', sizeof(casa_ctx.password));
+    snprintf(casa_ctx.password, sizeof(casa_ctx.password), "%s", pwd_json->valuestring);
     LOG_INFO("PARSER", "Password: %s", casa_ctx.password);
 
     cJSON *discovery_token_json = cJSON_GetObjectItem(json_parse, "token");                           /* parsing discovery token to registration struct */
@@ -59,7 +63,9 @@ int registration_udp_ble_parser(cJSON *json_parse)
 //        construct_mqtt_device_log_msg(E_TOKEN,L_REGISTRATION);
         return FAIL;
     }
-    strncpy(casa_ctx.registration->discovery_token, discovery_token_json->valuestring, strlen(discovery_token_json->valuestring));
+//    strncpy(casa_ctx.registration->discovery_token, discovery_token_json->valuestring, strlen(discovery_token_json->valuestring));
+    memset(casa_ctx.registration->discovery_token, '\0', sizeof(casa_ctx.registration->discovery_token));
+    snprintf(casa_ctx.registration->discovery_token, sizeof(casa_ctx.registration->discovery_token), "%s", discovery_token_json->valuestring);
     LOG_INFO("PARSER", "Discovery token: %s", casa_ctx.registration->discovery_token);
 
     cJSON *userid_json = cJSON_GetObjectItem(json_parse, "ownedBy");                                   /* parsing user ID to casa struct */
@@ -68,7 +74,9 @@ int registration_udp_ble_parser(cJSON *json_parse)
 //        construct_mqtt_device_log_msg(E_USER_ID,L_REGISTRATION);
         return FAIL;
     }
-    strncpy(casa_ctx.userid, userid_json->valuestring, strlen(userid_json->valuestring));
+//    strncpy(casa_ctx.userid, userid_json->valuestring, strlen(userid_json->valuestring));
+    memset(casa_ctx.userid, '\0', sizeof(casa_ctx.userid));
+    snprintf(casa_ctx.userid, sizeof(casa_ctx.userid), "%s", userid_json->valuestring);
     LOG_INFO("PARSER", "User ID: %s", casa_ctx.userid);
 
     cJSON *event_by_id_json = cJSON_GetObjectItem(json_parse, "eById");
@@ -77,8 +85,10 @@ int registration_udp_ble_parser(cJSON *json_parse)
 //        construct_mqtt_device_log_msg(E_EBY_ID,L_REGISTRATION);
         return FAIL;
     }
-    memset(casa_ctx.event_by_id, '\0', USRID_LEN);
-    strncpy(casa_ctx.event_by_id, event_by_id_json->valuestring, strlen(event_by_id_json->valuestring));
+//    memset(casa_ctx.event_by_id, '\0', USRID_LEN);
+//    strncpy(casa_ctx.event_by_id, event_by_id_json->valuestring, strlen(event_by_id_json->valuestring));
+    memset(casa_ctx.event_by_id, '\0', sizeof(casa_ctx.event_by_id));
+    snprintf(casa_ctx.event_by_id, sizeof(casa_ctx.event_by_id), "%s", event_by_id_json->valuestring);
     LOG_INFO("PARSER", "Event By ID: %s", casa_ctx.event_by_id);
 
     cJSON *event_by_json = cJSON_GetObjectItem(json_parse, "eBy");
@@ -87,8 +97,10 @@ int registration_udp_ble_parser(cJSON *json_parse)
 //        construct_mqtt_device_log_msg(E_EBY,L_REGISTRATION);
         return FAIL;
     }
-    memset(casa_ctx.event_by, '\0', EVENT_BY_LEN);
-    strncpy(casa_ctx.event_by, event_by_json->valuestring, strlen(event_by_json->valuestring));
+//    memset(casa_ctx.event_by, '\0', EVENT_BY_LEN);
+//    strncpy(casa_ctx.event_by, event_by_json->valuestring, strlen(event_by_json->valuestring));
+    memset(casa_ctx.event_by, '\0', sizeof(casa_ctx.event_by));
+    snprintf(casa_ctx.event_by, sizeof(casa_ctx.event_by), "%s", event_by_json->valuestring);
     LOG_INFO("PARSER", "Event By: %s", casa_ctx.event_by);
 
     cJSON *locationid_json = cJSON_GetObjectItem(json_parse, "locId");       /* parsing Location ID to casa struct */
@@ -97,7 +109,9 @@ int registration_udp_ble_parser(cJSON *json_parse)
 //        construct_mqtt_device_log_msg(E_LOC_ID,L_REGISTRATION);
         return FAIL;
     }
-    strncpy(casa_ctx.location, locationid_json->valuestring, strlen(locationid_json->valuestring));
+//    strncpy(casa_ctx.location, locationid_json->valuestring, strlen(locationid_json->valuestring));
+    memset(casa_ctx.location, '\0', sizeof(casa_ctx.location));
+    snprintf(casa_ctx.location, sizeof(casa_ctx.location), "%s", locationid_json->valuestring);
     LOG_INFO("PARSER", "location id: %s\r\n", casa_ctx.location);
 
     //authtoken_json = local_doc["authToken"];                                   /* parsing authentication token to registration struct */
@@ -107,7 +121,9 @@ int registration_udp_ble_parser(cJSON *json_parse)
 //        construct_mqtt_device_log_msg(E_AUTH_TOKEN,L_REGISTRATION);
         return FAIL;
     }
-    strncpy(casa_ctx.registration->authtoken, authtoken_json, strlen(authtoken_json)+1);
+//    strncpy(casa_ctx.registration->authtoken, authtoken_json, strlen(authtoken_json)+1);
+    memset(casa_ctx.registration->authtoken, '\0', sizeof(casa_ctx.registration->authtoken));
+    snprintf(casa_ctx.registration->authtoken, sizeof(casa_ctx.registration->authtoken), "%s", authtoken_json);
     LOG_INFO("PARSER", "authtoken: %s\r\n", casa_ctx.registration->authtoken);
 
     return PARSE_SUCCESS;
@@ -130,45 +146,45 @@ int cloud_mqtt_reg_json_parser(cJSON *json_parse)
     LOG_INFO("PARSE", "Execution: SUCCESS - Reg Status Code: %d", casa_ctx.registration->cloud_mqtt_reg_status);
 
     // 2. Check for FOTA URL
-//    cJSON *url = cJSON_GetObjectItemCaseSensitive(json_parse, "url");
+    cJSON *url = cJSON_GetObjectItemCaseSensitive(json_parse, "url");
+
+    if (!cJSON_IsString(url) || (url->valuestring == NULL)) {
+        LOG_WARN("PARSE", "Execution: NOTICE - No FOTA URL in this response");
+    } else {
+        // Safe Memory Allocation for FOTA context
+//        if (casa_ctx.fota_update == NULL) {
+//            casa_ctx.fota_update = (fota_context_t*) malloc(sizeof(fota_context_t));
+//        }
 //
-//    if (!cJSON_IsString(url) || (url->valuestring == NULL)) {
-//        LOG_WARN("PARSE", "Execution: NOTICE - No FOTA URL in this response");
-//    } else {
-//        // Safe Memory Allocation for FOTA context
-////        if (casa_ctx.fota_update == NULL) {
-////            casa_ctx.fota_update = (fota_context_t*) malloc(sizeof(fota_context_t));
-////        }
-////
-////        if (casa_ctx.fota_update == NULL) {
-////            LOG_ERROR("SYS", "Execution: Malloc failed for FOTA context");
-////            return FAIL;
-////        }
-////
-////        // --- FIXED ORDER ---
-////        // Initialize memory BEFORE assigning parsed values
-////        memset(casa_ctx.fota_update, 0, sizeof(fota_context_t));
-////
-////        // 3. Extract 'source'
-////        cJSON *src_json = cJSON_GetObjectItem(json_parse, "source");
-////        casa_ctx.url_src = (src_json != NULL) ? src_json->valueint : 0;
-////
-////        // 4. Extract 'requestId'
-////        // Note: Structure uses long long, cJSON uses valuedouble for large numbers
-////        cJSON *req_id = cJSON_GetObjectItem(json_parse, "requestId");
-////        if (req_id != NULL) {
-////            casa_ctx.fota_update->requestId = (long long)req_id->valuedouble;
-////        }
-////
-////        // 5. Secure String Copy to fota_context_t
-////        fota_url = url->valuestring;
-////        strncpy(casa_ctx.fota_update->fota_url, fota_url, sizeof(casa_ctx.fota_update->fota_url) - 1);
-////
-////        // Update the flag in your new registration structure
-////        casa_ctx.registration->reg_fota_status = 1;
-////
-////        LOG_INFO("PARSE", "Execution: FOTA URL saved for RequestID: %lld", casa_ctx.fota_update->requestId);
-//    }
+//        if (casa_ctx.fota_update == NULL) {
+//            LOG_ERROR("SYS", "Execution: Malloc failed for FOTA context");
+//            return FAIL;
+//        }
+//
+//        // --- FIXED ORDER ---
+//        // Initialize memory BEFORE assigning parsed values
+//        memset(casa_ctx.fota_update, 0, sizeof(fota_context_t));
+//
+//        // 3. Extract 'source'
+//        cJSON *src_json = cJSON_GetObjectItem(json_parse, "source");
+//        casa_ctx.url_src = (src_json != NULL) ? src_json->valueint : 0;
+//
+//        // 4. Extract 'requestId'
+//        // Note: Structure uses long long, cJSON uses valuedouble for large numbers
+//        cJSON *req_id = cJSON_GetObjectItem(json_parse, "requestId");
+//        if (req_id != NULL) {
+//            casa_ctx.fota_update->requestId = (long long)req_id->valuedouble;
+//        }
+//
+//        // 5. Secure String Copy to fota_context_t
+//        fota_url = url->valuestring;
+//        strncpy(casa_ctx.fota_update->fota_url, fota_url, sizeof(casa_ctx.fota_update->fota_url) - 1);
+//
+//        // Update the flag in your new registration structure
+//        casa_ctx.registration->reg_fota_status = 1;
+//
+//        LOG_INFO("PARSE", "Execution: FOTA URL saved for RequestID: %lld", casa_ctx.fota_update->requestId);
+    }
 
     return PARSE_SUCCESS;
 }

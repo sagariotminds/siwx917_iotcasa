@@ -79,7 +79,7 @@ void cloud_reg_fota_status_callback(sl_sleeptimer_timer_handle_t *handle, void *
   if (casa_ctx.registration->cloud_mqtt_fota_status == 1) {
       casa_ctx.registration->current_op  = REGISTRATION_FINAL;
       if (sl_sleeptimer_stop_timer(&reg_fota_periodic_timer) == SL_STATUS_OK) {
-          LOG_INFO("REG", "Timer Stopped due to FOTA data receive");
+//          LOG_INFO("REG", "Timer Stopped due to FOTA data receive");
       }
   } else if (casa_ctx.registration->time_out == CLOUD_REG_RESP_TIME || mqtt_connection_check == false ) {
 //      Insert_operation_history(REG_CLOUD_RESP_TIMEOUT);
@@ -217,6 +217,7 @@ void casa_registration(void)
 
             if ( mqtt_app_start() && casa_ctx.mqtt_ssl_connection == true) {
                casa_ctx.registration->current_op = REG_DEVICE_DETAILS_SHARING;
+               mqtt_connection_task_create();
             } else if (casa_ctx.mqtt_ssl_connection == false  && mqtt_connection_check == true){
                casa_ctx.registration->current_op = REGISTRATION_FOTA_UPDATE_CHECK;
             } else {
@@ -264,7 +265,7 @@ void casa_registration(void)
         case REGISTRATION_PROCESS:       /* Cloud sends the registration response. Depending on cloud response, */
         {                                /* success or fail response is sent to mobile app via UDP or BLE */
             if (casa_ctx.registration->cloud_mqtt_reg_status == CLOUD_CODE_OK) {
-                LOG_INFO("REG", "Registration is success.");
+//                LOG_INFO("REG", "Registration is success.");
 //                gpio_set_level(WIFI_STATUS_LED_GPIO, LOW);
                 casa_ctx.reg_status = REGISTRATION_DONE;
                 create_discovery_resp_to_mobile(reg_final_response, CODE_SUCCESS, SUCCESS);
@@ -279,10 +280,10 @@ void casa_registration(void)
 
                 set_eeprom_device_reg_info();
                 device_status_report = 0;
-                mqtt_connection_task_create();
+//                mqtt_connection_task_create();
                 casa_ctx.registration->current_op = REGISTRATION_FINAL;
             } else {
-                LOG_INFO("REG", "Registration failed resp from cloud.");
+                LOG_ERROR("REG", "Registration failed resp from cloud.");
 //                Insert_operation_history(RCVD_REG_FAIL_RESP);
                 casa_ctx.registration->current_op = REGISTRATION_FINAL;
             }
@@ -308,8 +309,8 @@ void casa_registration(void)
 //                gpio_set_level(WIFI_STATUS_LED_GPIO, HIGH);
                 mqtt_connection_check = false;
             } else if (casa_ctx.reg_status == REGISTRATION_DONE) {
-                sl_net_down(SL_NET_WIFI_AP_INTERFACE);
-                sl_wifi_stop_ap(SL_WIFI_AP_INTERFACE);
+//                sl_net_down(SL_NET_WIFI_AP_INTERFACE);
+//                sl_wifi_stop_ap(SL_WIFI_AP_INTERFACE);
             }
 
             osDelay(DELAY_2000S);
@@ -435,7 +436,9 @@ void discovery_device_details_json(void)
     cJSON_Minify(json);
     strcpy(casa_ctx.registration->casa_device_details,json);
     free(json);
-    LOG_INFO("REG","Device discovery details: %s\r\n",(char *)casa_ctx.registration->casa_device_details);
+//    LOG_INFO_LARGE("REG", (char *)casa_ctx.registration->casa_device_details);
+    LOG_INFO("REG", "Device discovery details prepared");
+    LOG_INFO_LARGE("REG", (char *)casa_ctx.registration->casa_device_details);
 }
 
 void create_discovery_resp_to_mobile(char buf[REG_FINAL_RESP_LEN], const char *status_resp, const char *msg)
