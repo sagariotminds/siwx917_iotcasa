@@ -1,0 +1,127 @@
+iotcasa/src/mqtt_handler.o: ../iotcasa/src/mqtt_handler.c \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\common\inc\sl_constants.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\common\inc\sl_additional_status.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\mqtt\inc\sl_mqtt_client.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\mqtt\inc\sl_mqtt_client_types.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_slist.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_constants.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\protocol\wifi\inc\sl_wifi_constants.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\common\inc\sl_ip_types.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_wifi_device.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_si91x_status.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_si91x_protocol_types.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\common\inc\sl_ieee802_types.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\protocol\wifi\inc\sl_wifi_types.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\protocol\wifi\inc\sl_wifi_constants.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_status.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_si91x_constants.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_common.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_assert.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_bit.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_si91x_types.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\protocol\wifi\inc\sl_wifi_host_interface.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\protocol\wifi\inc\sl_wifi.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_types.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_ip_types.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\common\inc\sl_utility.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_dns.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\sl_net\inc\sl_net_si91x.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sli_net_constants.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sli_net_common_utility.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sli_net_types.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_wifi_types.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\config/sl_net_default_values.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/mqtt_handler.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/iotcasa_types.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\rtos2\include\cmsis_os2.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\config/FreeRTOSConfig.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\core\chip\inc\si91x_device.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\core\chip\inc\base_types.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\core\include\core_cm4.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\core\include\cmsis_version.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\core\include\cmsis_compiler.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\core\include\cmsis_gcc.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\core\include\mpu_armv7.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\core\chip\inc\system_si91x.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\core\chip\inc\rsi_error.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\core\config\rsi_ccp_user_config.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\core\chip\inc\si91x_mvp.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\config/sl_board_configuration.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\drivers\unified_api\inc\sl_si91x_driver_gpio.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\drivers\unified_api\inc\sl_driver_gpio.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\drivers\unified_peripheral_drivers\inc\sl_si91x_peripheral_gpio.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\drivers\unified_peripheral_drivers\inc\sl_si91x_gpio.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\drivers\unified_peripheral_drivers\inc\sl_si91x_gpio_common.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\service\sleeptimer\inc\sl_sleeptimer.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_code_classification.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sli_code_classification.h \
+ C:\Users\User\SimplicityStudio\SDKs\simplicity_sdk\util\third_party\cjson/cJSON.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_log.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/gpio_control.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/de_registration.h
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\common\inc\sl_constants.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\common\inc\sl_additional_status.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\mqtt\inc\sl_mqtt_client.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\mqtt\inc\sl_mqtt_client_types.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_slist.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_constants.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\protocol\wifi\inc\sl_wifi_constants.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\common\inc\sl_ip_types.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_wifi_device.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_si91x_status.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_si91x_protocol_types.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\common\inc\sl_ieee802_types.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\protocol\wifi\inc\sl_wifi_types.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\protocol\wifi\inc\sl_wifi_constants.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_status.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_si91x_constants.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_common.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_assert.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_bit.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_si91x_types.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\protocol\wifi\inc\sl_wifi_host_interface.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\protocol\wifi\inc\sl_wifi.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_types.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_ip_types.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\common\inc\sl_utility.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_dns.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\sl_net\inc\sl_net_si91x.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sli_net_constants.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sli_net_common_utility.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sli_net_types.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_wifi_types.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\config/sl_net_default_values.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/mqtt_handler.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/iotcasa_types.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\rtos2\include\cmsis_os2.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\config/FreeRTOSConfig.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\core\chip\inc\si91x_device.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\core\chip\inc\base_types.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\core\include\core_cm4.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\core\include\cmsis_version.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\core\include\cmsis_compiler.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\core\include\cmsis_gcc.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\core\include\mpu_armv7.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\core\chip\inc\system_si91x.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\core\chip\inc\rsi_error.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\core\config\rsi_ccp_user_config.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\core\chip\inc\si91x_mvp.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\config/sl_board_configuration.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\drivers\unified_api\inc\sl_si91x_driver_gpio.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\drivers\unified_api\inc\sl_driver_gpio.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\drivers\unified_peripheral_drivers\inc\sl_si91x_peripheral_gpio.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\drivers\unified_peripheral_drivers\inc\sl_si91x_gpio.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\mcu\drivers\unified_peripheral_drivers\inc\sl_si91x_gpio_common.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\service\sleeptimer\inc\sl_sleeptimer.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_code_classification.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sli_code_classification.h:
+C:\Users\User\SimplicityStudio\SDKs\simplicity_sdk\util\third_party\cjson/cJSON.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_log.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/gpio_control.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/de_registration.h:
