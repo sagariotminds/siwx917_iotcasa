@@ -176,18 +176,18 @@ void save_device_status(int index)
     int32_t val = device_control.endpoint_info[index].set_value;
 
     // Save to NVM3 using Endpoint ID (e.g., Index 0 -> Key 0x0201)
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_ENDPOINT(index + 1), (uint8_t *)&val, sizeof(int32_t));
+    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_ENDPOINT(device_control.endpoint_info[index].endpoint), (uint8_t *)&val, sizeof(int32_t));
 
     if (casa_ctx.reg_dereg_flag == 0) casa_ctx.switch_interrupts = ENABLE;
-    LOG_INFO("NVM", "Execution: SUCCESS - Saved Index %d [Value: %ld]", index, val);
+    LOG_INFO("NVM", "Execution: SUCCESS - Saved Index %d [Value: %ld] Endpoint :%d", index, val, device_control.endpoint_info[index].endpoint);
 }
 
 void get_eeprom_device_state_info(void)
 {
     int32_t saved_val = 0;
-    for (int i = 0; i < NO_OF_ENDPOINTS; i++) {
+    for (int i = 1; i <= NO_OF_ENDPOINTS; i++) {
         // Read state from NVM3
-        sl_status_t status = nvm3_readData(nvm3_defaultHandle, NVM3_KEY_ENDPOINT(i + 1), &saved_val, sizeof(int32_t));
+        sl_status_t status = nvm3_readData(nvm3_defaultHandle, NVM3_KEY_ENDPOINT(i), &saved_val, sizeof(int32_t));
 
         // If data exists, apply to GPIO; otherwise, default to OFF (0)
         if (status == SL_STATUS_OK && saved_val == 1) {

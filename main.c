@@ -82,8 +82,9 @@ int main(void)
   sl_main_second_stage_init();
 
   app_init();
+//  sl_main_kernel_start();
 
   while (1) {
-    app_process_action();
+//    app_process_action();
   }
 }

@@ -5,7 +5,6 @@
  *      Author: User
  */
 
-
 #include "device_control.h"
 #include "gpio_control.h"
 #include "mqtt_handler.h"
@@ -81,7 +80,6 @@ void casa_device_status_update(void)
         }
     }
 }
-
 
 void construct_status_update_json(void)
 {
