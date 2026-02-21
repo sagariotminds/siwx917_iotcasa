@@ -174,17 +174,14 @@ static bool check_internet_connectivity(void)
   struct sockaddr_in server_addr;
   struct timeval timeout;
 
-  printf("check_internet_connectivity 1\r\n");
   sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sock < 0) {
-      printf("check_internet_connectivity 1.5\r\n");
     LOG_ERROR("WIFI", "Socket create failed");
     return false;
   }
 
   timeout.tv_sec  = 3;   // 3 seconds timeout
   timeout.tv_usec = 0;
-  printf("check_internet_connectivity 2\r\n");
   setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
   setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
 
@@ -192,13 +189,11 @@ static bool check_internet_connectivity(void)
   server_addr.sin_family = AF_INET;
   server_addr.sin_port   = htons(443);          // HTTPS (very reliable)
   uint32_t ip_addr;
-  printf("check_internet_connectivity 3\r\n");
   if (sl_net_inet_addr("8.8.8.8", &ip_addr) != SL_STATUS_OK) {
     LOG_ERROR("WIFI", "Invalid IP address");
     close(sock);
     return false;
   }
-  printf("check_internet_connectivity 4\r\n");
 
   server_addr.sin_addr.s_addr = ip_addr;
 
@@ -212,7 +207,6 @@ static bool check_internet_connectivity(void)
     close(sock);
     return true;
   }
-  printf("check_internet_connectivity 5\r\n");
   LOG_WARN("WIFI", "Internet NOT available");
   close(sock);
   printf("check_internet_connectivity end \r\n");

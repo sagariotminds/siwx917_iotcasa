@@ -8,6 +8,7 @@
 
 
 /* --- BLE Stack (Si91x / RSI APIs) --- */
+#include <stdbool.h>
 #include <casa_log.h>
 #include "rsi_ble_apis.h"
 #include "rsi_bt_common_apis.h"
@@ -22,6 +23,7 @@
 #include "bluetooth.h"
 #include "casa_module.h"
 #include "casa_msg_parser.h"
+#include "iotcasa_types.h"
 
 /******************************************************
 *               BLE Constants
@@ -98,6 +100,9 @@ static rsi_ble_event_disconnect_t disconn_event_to_app;
 static rsi_ble_event_write_t app_ble_write_event;
 static uint16_t rsi_ble_att1_val_hndl;
 static rsi_ble_read_req_t app_ble_read_event;
+static bool app_ble_read_req_valid = false;
+static bool app_ble_read_rsp_window_open = false;
+static char pending_ble_response[BLE_MAX_REQ_SIZE] = { 0 };
 uint8_t str_remote_address[18] = { '\0' };
 osSemaphoreId_t ble_main_task_sem;
 
@@ -111,6 +116,13 @@ extern casa_context_t casa_ctx;
  *                   BLE Function Definitions
  ******************************************************/
 
+void casa_ble_process(void *argument);
+
+const osThreadAttr_t ble_app_thread_attributes = {
+  .name       = "casa_BLE_app",
+  .stack_size = 4000,
+  .priority   = osPriorityRealtime,
+};
 
 void stop_ble_service(void)
 {
@@ -150,19 +162,41 @@ void rsi_ble_send_json_response(const char *json_payload)
     return;
   }
 
-  printf("BLE :: %s, %s",conn_event_to_app.dev_addr,json_payload);
   uint16_t payload_len = (uint16_t)strlen(json_payload);
-  int32_t status = rsi_ble_gatt_read_response(str_remote_address,
+  if (payload_len == 0) {
+      LOG_WARN("BLE", "Send skipped: Empty payload");
+      return;
+    }
+
+    if (payload_len >= BLE_MAX_REQ_SIZE) {
+      LOG_ERROR("BLE", "Send Error: Payload too large (%u bytes)", payload_len);
+      return;
+    }
+
+    printf("BLE :: %s, %s", str_remote_address, json_payload);
+
+    if (!app_ble_read_req_valid || !app_ble_read_rsp_window_open) {
+      strcpy(pending_ble_response, json_payload);
+      LOG_WARN("BLE", "Queued response (%u bytes); waiting for active read request", payload_len);
+      return;
+    }
+
+    int32_t status = rsi_ble_gatt_read_response(conn_event_to_app.dev_addr,
                                               0,        // reserved flags
                                               app_ble_read_event.handle,
                                               0,        // offset
                                               payload_len,
-                                              (uint8_t *)json_payload);
+                                              (uint8_t *)pending_ble_response);
 
   if (status != RSI_SUCCESS) {
     LOG_ERROR("BLE", "Send Failed! Status: 0x%lX", (uint32_t)status);
+    strcpy(pending_ble_response, json_payload);
+    app_ble_read_req_valid = false;
+    LOG_WARN("BLE", "Queued response for retry on next read request");
   } else {
     LOG_INFO("BLE", "Sent %d bytes successfully.", payload_len);
+    pending_ble_response[0] = '\0';
+    app_ble_read_req_valid = false;
   }
 }
 
@@ -386,6 +420,7 @@ static void rsi_ble_on_read_req_event(uint16_t event_id, rsi_ble_read_req_t *rsi
 {
   UNUSED_PARAMETER(event_id); //This statement is added only to resolve compilation warning, value is unchanged
   memcpy(&app_ble_read_event, rsi_ble_read_req, sizeof(rsi_ble_read_req_t));
+  app_ble_read_req_valid = true;
 //  LOG_DEBUG("BLE", "Read request from mobile app");
   rsi_ble_app_set_event(RSI_BLE_READ_REQ_EVENT);
 }
@@ -440,139 +475,163 @@ sl_status_t casa_ble_init(void)
       LOG_ERROR("BLE", "BLE Advertising failed");
       return FAIL;
   }
+
+  if (osThreadNew(casa_ble_process, NULL, &ble_app_thread_attributes) != NULL) {
+        LOG_INFO("APP", "casa app task created.");
+    } else {
+        LOG_ERROR("APP", "casa app task not created.");
+    }
   return status;
 }
 
-void casa_ble_process(void)
+
+void casa_ble_process(void *argument)
 {
+  UNUSED_PARAMETER(argument);
   int32_t event_id;
   sl_status_t status;
-  //! checking for events list
-  event_id = rsi_ble_app_get_event();
-  if (event_id == -1) {
-    osSemaphoreAcquire(ble_main_task_sem, osWaitForever);
-    return;
-  }
+  while(1) {
 
-  switch (event_id) {
-    case RSI_BLE_CONN_EVENT: {
-      //! event invokes when connection was completed
-
-      //! clear the served event
-      brace_depth = 0;
-      ble_data_counter = 0;
-      rsi_ble_app_clear_event(RSI_BLE_CONN_EVENT);
-      rsi_6byte_dev_address_to_ascii(str_remote_address, conn_event_to_app.dev_addr);
-      LOG_INFO("BLE", "Module connected to address : %s", str_remote_address);
-
-      status = rsi_ble_mtu_exchange_event((uint8_t *)conn_event_to_app.dev_addr, RSI_BLE_MTU_SIZE);
-      if (status != RSI_SUCCESS) {
-          LOG_ERROR("BLE", "MTU CMD status: 0x%lX", status);
-      }
-
-    } break;
-
-    case RSI_BLE_DISCONN_EVENT: {
-      //! event invokes when disconnection was completed
-      //! clear the served event
-      brace_depth = 0;
-      ble_data_counter = 0;
-      rsi_ble_app_clear_event(RSI_BLE_DISCONN_EVENT);
-      LOG_WARN("BLE", "Module Disconnected");
-
-      // Restart advertising so the device remains discoverable
-      do {
-        status = rsi_ble_start_advertising();
-      } while (status != RSI_SUCCESS);
-      LOG_INFO("BLE", "Restarted Advertising...");
-    } break;
-    case RSI_BLE_GATT_WRITE_EVENT: {
-      rsi_ble_app_clear_event(RSI_BLE_GATT_WRITE_EVENT);
-
-      // Check if the write is on the correct attribute handle
-      if ((*(uint16_t *)app_ble_write_event.handle) == rsi_ble_att1_val_hndl) {
-          if (casa_ctx.registration == NULL) {
-                    LOG_ERROR("BLE", "Registration context unavailable; ignoring BLE write");
-            rsi_ble_gatt_write_response(conn_event_to_app.dev_addr, 0);
-            break;
-          }
-        uint16_t length = app_ble_write_event.length;
-        uint8_t *incoming_data = app_ble_write_event.att_value;
-
-        // We use static variables to keep track across multiple packet events
-        static int brace_depth = 0;
-
-        // Disable interrupts/inputs like in your ESP32 code
-        casa_ctx.switch_interrupts = DISABLE;
-
-        for (int i = 0; i < length; i++) {
-          uint8_t c = incoming_data[i];
-
-          // 1. Filter out whitespace/junk
-          if (c == '\n' || c == '\r' || c == '\t') continue;
-
-          // 2. Start of JSON detection
-          if (c == '{') {
-            // If we see a '{' but the counter is stuck from a previous failed attempt, reset.
-            if (brace_depth == 0 && casa_ctx.registration->ble_data_counter > 0) {
-               printf("\r\n[BLE] Resyncing Buffer...\r\n");
-               casa_ctx.registration->ble_data_counter = 0;
-               memset(casa_ctx.registration->ble_buffer, 0, BLE_MAX_REQ_SIZE);
-            }
-            brace_depth++;
-          }
-
-          // 3. Collection Logic
-          if (brace_depth > 0) {
-            if (casa_ctx.registration->ble_data_counter < (BLE_MAX_REQ_SIZE - 1)) {
-                // Store character using the persistent counter
-                casa_ctx.registration->ble_buffer[casa_ctx.registration->ble_data_counter++] = c;
-            } else {
-                printf("\r\n[BLE] ERROR: Buffer Overflow (%d bytes)\r\n", BLE_MAX_REQ_SIZE);
-                casa_ctx.registration->ble_data_counter = 0;
-                brace_depth = 0;
-                break;
-            }
-          }
-
-          // 4. End of JSON detection
-          if (c == '}') {
-            if (brace_depth > 0) brace_depth--;
-
-            // If depth reaches 0, we have a complete JSON object
-            if (brace_depth == 0 && casa_ctx.registration->ble_data_counter > 0) {
-              casa_ctx.registration->ble_buffer[casa_ctx.registration->ble_data_counter] = '\0'; // Null terminate
-              casa_ctx.registration->buffer_status = true;
-
-              printf("\r\n[BLE] Full JSON Received (%d bytes):\r\n%s\r\n", casa_ctx.registration->ble_data_counter, (char *)casa_ctx.registration->ble_buffer);
-
-              // Reset counter for the NEXT complete JSON string
-              casa_ctx.registration->ble_data_counter = 0;
-
-              // Note: Do NOT memset here if you need to parse the buffer in another task
-              // Parsing should happen now or in a separate task
-            }
-          }
+      //! checking for events list
+        event_id = rsi_ble_app_get_event();
+        if (event_id == -1) {
+          osSemaphoreAcquire(ble_main_task_sem, osWaitForever);
+          return;
         }
 
-        casa_ctx.switch_interrupts = ENABLE;
+        switch (event_id) {
+          case RSI_BLE_CONN_EVENT: {
+            //! event invokes when connection was completed
 
-        // Send response back to mobile app to acknowledge the write
-        rsi_ble_gatt_write_response(conn_event_to_app.dev_addr, 0);
-      }
-    } break;
-    case RSI_BLE_READ_REQ_EVENT: {
-      rsi_ble_app_clear_event(RSI_BLE_READ_REQ_EVENT);
-      printf("Read Request handled.\n");
-    } break;
+            //! clear the served event
+            brace_depth = 0;
+            ble_data_counter = 0;
+            rsi_ble_app_clear_event(RSI_BLE_CONN_EVENT);
+            rsi_6byte_dev_address_to_ascii(str_remote_address, conn_event_to_app.dev_addr);
+            app_ble_read_req_valid = false;
+            app_ble_read_rsp_window_open = false;
+            pending_ble_response[0] = '\0';
+            LOG_INFO("BLE", "Module connected to address : %s", str_remote_address);
 
-    case RSI_BLE_GATT_ERROR: {
+            status = rsi_ble_mtu_exchange_event((uint8_t *)conn_event_to_app.dev_addr, RSI_BLE_MTU_SIZE);
+            if (status != RSI_SUCCESS) {
+                LOG_ERROR("BLE", "MTU CMD status: 0x%lX", status);
+            }
 
-      //! clear the served even
-      rsi_ble_app_clear_event(RSI_BLE_GATT_ERROR);
-    } break;
-    default: {
-    }
+          } break;
+
+          case RSI_BLE_DISCONN_EVENT: {
+            //! event invokes when disconnection was completed
+            //! clear the served event
+            brace_depth = 0;
+            ble_data_counter = 0;
+            rsi_ble_app_clear_event(RSI_BLE_DISCONN_EVENT);
+            app_ble_read_req_valid = false;
+            app_ble_read_rsp_window_open = false;
+            pending_ble_response[0] = '\0';
+            LOG_WARN("BLE", "Module Disconnected");
+
+            // Restart advertising so the device remains discoverable
+            do {
+              status = rsi_ble_start_advertising();
+            } while (status != RSI_SUCCESS);
+            LOG_INFO("BLE", "Restarted Advertising...");
+          } break;
+          case RSI_BLE_GATT_WRITE_EVENT: {
+            rsi_ble_app_clear_event(RSI_BLE_GATT_WRITE_EVENT);
+
+            // Check if the write is on the correct attribute handle
+            if ((*(uint16_t *)app_ble_write_event.handle) == rsi_ble_att1_val_hndl) {
+                if (casa_ctx.registration == NULL) {
+                          LOG_ERROR("BLE", "Registration context unavailable; ignoring BLE write");
+                  rsi_ble_gatt_write_response(conn_event_to_app.dev_addr, 0);
+                  break;
+                }
+              uint16_t length = app_ble_write_event.length;
+              uint8_t *incoming_data = app_ble_write_event.att_value;
+
+              // We use static variables to keep track across multiple packet events
+              static int brace_depth = 0;
+
+              // Disable interrupts/inputs like in your ESP32 code
+              casa_ctx.switch_interrupts = DISABLE;
+
+              for (int i = 0; i < length; i++) {
+                uint8_t c = incoming_data[i];
+
+                // 1. Filter out whitespace/junk
+                if (c == '\n' || c == '\r' || c == '\t') continue;
+
+                // 2. Start of JSON detection
+                if (c == '{') {
+                  // If we see a '{' but the counter is stuck from a previous failed attempt, reset.
+                  if (brace_depth == 0 && casa_ctx.registration->ble_data_counter > 0) {
+                     printf("\r\n[BLE] Resyncing Buffer...\r\n");
+                     casa_ctx.registration->ble_data_counter = 0;
+                     memset(casa_ctx.registration->ble_buffer, 0, BLE_MAX_REQ_SIZE);
+                  }
+                  brace_depth++;
+                }
+
+                // 3. Collection Logic
+                if (brace_depth > 0) {
+                  if (casa_ctx.registration->ble_data_counter < (BLE_MAX_REQ_SIZE - 1)) {
+                      // Store character using the persistent counter
+                      casa_ctx.registration->ble_buffer[casa_ctx.registration->ble_data_counter++] = c;
+                  } else {
+                      printf("\r\n[BLE] ERROR: Buffer Overflow (%d bytes)\r\n", BLE_MAX_REQ_SIZE);
+                      casa_ctx.registration->ble_data_counter = 0;
+                      brace_depth = 0;
+                      break;
+                  }
+                }
+
+                // 4. End of JSON detection
+                if (c == '}') {
+                  if (brace_depth > 0) brace_depth--;
+
+                  // If depth reaches 0, we have a complete JSON object
+                  if (brace_depth == 0 && casa_ctx.registration->ble_data_counter > 0) {
+                    casa_ctx.registration->ble_buffer[casa_ctx.registration->ble_data_counter] = '\0'; // Null terminate
+                    casa_ctx.registration->buffer_status = true;
+
+                    printf("\r\n[BLE] Full JSON Received (%d bytes):\r\n%s\r\n", casa_ctx.registration->ble_data_counter, (char *)casa_ctx.registration->ble_buffer);
+
+                    // Reset counter for the NEXT complete JSON string
+                    casa_ctx.registration->ble_data_counter = 0;
+
+                    // Note: Do NOT memset here if you need to parse the buffer in another task
+                    // Parsing should happen now or in a separate task
+                  }
+                }
+              }
+
+              casa_ctx.switch_interrupts = ENABLE;
+
+              // Send response back to mobile app to acknowledge the write
+              rsi_ble_gatt_write_response(conn_event_to_app.dev_addr, 0);
+            }
+          } break;
+          case RSI_BLE_READ_REQ_EVENT: {
+            rsi_ble_app_clear_event(RSI_BLE_READ_REQ_EVENT);
+            app_ble_read_rsp_window_open = true;
+            printf("Read Request handled.\n");
+            if (pending_ble_response[0] != '\0') {
+              LOG_INFO("BLE", "Sending queued response on read request");
+              rsi_ble_send_json_response(pending_ble_response);
+            }
+            app_ble_read_rsp_window_open = false;
+            app_ble_read_req_valid = false;
+          } break;
+
+          case RSI_BLE_GATT_ERROR: {
+
+            //! clear the served even
+            rsi_ble_app_clear_event(RSI_BLE_GATT_ERROR);
+          } break;
+          default: {
+          }
+        }
+        osDelay(100);
   }
 }
-

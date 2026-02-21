@@ -81,7 +81,7 @@ void casa_app_process_action(void *argument)
 //  printf("This is app process action loop.\r\n");
   while(1) {
 //        printf("This is app process action loop.\r\n");
-        casa_ble_process();
+//        casa_ble_process();
 
         switch (casa_ctx.current_operation)
         {

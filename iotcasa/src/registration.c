@@ -314,7 +314,7 @@ void casa_registration(void)
             }
 
             osDelay(DELAY_2000S);
-            stop_ble_service();
+//            stop_ble_service();
 //            if(casa_ctx.reg_status == REGISTRATION_DONE) {
 //                udp_close();
 //            }
