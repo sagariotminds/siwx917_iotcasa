@@ -150,8 +150,9 @@ void rsi_ble_send_json_response(const char *json_payload)
     return;
   }
 
+  printf("BLE :: %s, %s",conn_event_to_app.dev_addr,json_payload);
   uint16_t payload_len = (uint16_t)strlen(json_payload);
-  int32_t status = rsi_ble_gatt_read_response(conn_event_to_app.dev_addr,
+  int32_t status = rsi_ble_gatt_read_response(str_remote_address,
                                               0,        // reserved flags
                                               app_ble_read_event.handle,
                                               0,        // offset

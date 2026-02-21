@@ -72,19 +72,56 @@
 //}
 
 
+//#include "sl_component_catalog.h"
+//#include "sl_main_init.h"
+//#include "sl_main_kernel.h"
+//
+//int main(void)
+//{
+//  // Initialize Silicon Labs device, system, service(s) and protocol stack(s).
+//  sl_main_second_stage_init();
+//
+//  app_init();
+////  sl_main_kernel_start();
+//
+//  while (1) {
+//    app_process_action();
+//  }
+//}
+
+
 #include "sl_component_catalog.h"
 #include "sl_main_init.h"
-#include "sl_main_kernel.h"
+#include "sl_main_process_action.h"
+#include "app.h"
+
+#if defined(SL_CATALOG_KERNEL_PRESENT)
+#include "cmsis_os2.h"
+#endif
 
 int main(void)
 {
   // Initialize Silicon Labs device, system, service(s) and protocol stack(s).
+#if defined(SL_CATALOG_KERNEL_PRESENT)
+  // In RTOS builds, main() executes in the Simplicity start task context.
+  // Complete second-stage init and then run the application hooks.
   sl_main_second_stage_init();
+  app_init();
 
+  while (1) {
+    app_process_action();
+    osDelay(1);
+  }
+#else
+  // Non-RTOS fallback: initialize then run a superloop.
+  sl_main_init();
   app_init();
 //  sl_main_kernel_start();
 
   while (1) {
 //    app_process_action();
+    sl_main_process_action();
+    app_process_action();
   }
+#endif
 }
