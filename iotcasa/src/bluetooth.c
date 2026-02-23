@@ -126,103 +126,92 @@ const osThreadAttr_t ble_app_thread_attributes = {
 
 void stop_ble_service(void)
 {
-  int32_t status;
+    int32_t status;
 
-  // 1. Attempt to stop advertising.
-  // Note: 0x4E0C often occurs if already stopped; we log but continue.
-  status = rsi_ble_stop_advertising();
-  if (status != RSI_SUCCESS) {
-    LOG_WARN("BLE", "Stop advertising status: 0x%lx", status);
-  }
+    status = rsi_ble_stop_advertising();
+    if (status != RSI_SUCCESS) {
+      LOG_WARN("BLE", "Stop advertising status: 0x%lx", status);
+    }
 
-  // 2. Clear Callbacks - prevents firmware from jumping to NULL/invalid addresses
-  rsi_ble_gap_register_callbacks(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+    rsi_ble_gap_register_callbacks(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
-  // 3. De-initialize the BT Stack
-  status = rsi_bt_deinit();
-  if (status != RSI_SUCCESS) {
-    LOG_ERROR("BLE", "BT Deinit failed: 0x%lx", status);
-    return;
-  }
+    status = rsi_bt_deinit();
+    if (status != RSI_SUCCESS) {
+      LOG_ERROR("BLE", "BT Deinit failed: 0x%lx", status);
+      return;
+    }
 
-  // 4. Safe RTOS Cleanup
-  // Instead of checking count, check if the handle exists.
-  if (ble_main_task_sem != NULL) {
-    osSemaphoreDelete(ble_main_task_sem);
-    ble_main_task_sem = NULL; // Crucial: prevent dangling pointer
-  }
+    if (ble_main_task_sem != NULL) {
+      osSemaphoreDelete(ble_main_task_sem);
+      ble_main_task_sem = NULL;
+    }
 
-  LOG_INFO("BLE", "Execution: SUCCESS - BLE Module Stopped");
+    LOG_INFO("BLE", "Execution: SUCCESS - BLE Module Stopped");
+}
+
+static int32_t ble_send_read_response_direct(const char *json_payload, uint16_t payload_len)
+{
+    return rsi_ble_gatt_read_response(conn_event_to_app.dev_addr, 0, app_ble_read_event.handle, 0, payload_len, (uint8_t *)json_payload);
 }
 
 void rsi_ble_send_json_response(const char *json_payload)
 {
-  if (json_payload == NULL) {
-    LOG_ERROR("BLE", "Send Error: Null Buffer");
-    return;
-  }
+    if (json_payload == NULL) {
+        LOG_ERROR("BLE", "Send Error: Null Buffer");
+        return;
+    }
 
-  uint16_t payload_len = (uint16_t)strlen(json_payload);
-  if (payload_len == 0) {
-      LOG_WARN("BLE", "Send skipped: Empty payload");
-      return;
+    uint16_t payload_len = (uint16_t)strlen(json_payload);
+    if (payload_len == 0) {
+        LOG_WARN("BLE", "Send skipped: Empty payload");
+        return;
     }
 
     if (payload_len >= BLE_MAX_REQ_SIZE) {
-      LOG_ERROR("BLE", "Send Error: Payload too large (%u bytes)", payload_len);
-      return;
+        LOG_ERROR("BLE", "Send Error: Payload too large (%u bytes)", payload_len);
+        return;
     }
 
     printf("BLE :: %s, %s", str_remote_address, json_payload);
 
     if (!app_ble_read_req_valid || !app_ble_read_rsp_window_open) {
-      strcpy(pending_ble_response, json_payload);
-      LOG_WARN("BLE", "Queued response (%u bytes); waiting for active read request", payload_len);
-      return;
+        strcpy(pending_ble_response, json_payload);
+        LOG_WARN("BLE", "Queued response (%u bytes); waiting for active read request", payload_len);
+        return;
     }
 
-    int32_t status = rsi_ble_gatt_read_response(conn_event_to_app.dev_addr,
-                                              0,        // reserved flags
-                                              app_ble_read_event.handle,
-                                              0,        // offset
-                                              payload_len,
-                                              (uint8_t *)pending_ble_response);
+    int32_t status = ble_send_read_response_direct(json_payload, payload_len);
 
-  if (status != RSI_SUCCESS) {
-    LOG_ERROR("BLE", "Send Failed! Status: 0x%lX", (uint32_t)status);
-    strcpy(pending_ble_response, json_payload);
-    app_ble_read_req_valid = false;
-    LOG_WARN("BLE", "Queued response for retry on next read request");
-  } else {
-    LOG_INFO("BLE", "Sent %d bytes successfully.", payload_len);
-    pending_ble_response[0] = '\0';
-    app_ble_read_req_valid = false;
-  }
+    if (status != RSI_SUCCESS) {
+        LOG_ERROR("BLE", "Send Failed! Status: 0x%lX", (uint32_t)status);
+        strcpy(pending_ble_response, json_payload);
+        app_ble_read_req_valid = false;
+        LOG_WARN("BLE", "Queued response for retry on next read request");
+    } else {
+        LOG_INFO("BLE", "Sent %d bytes successfully.", payload_len);
+        pending_ble_response[0] = '\0';
+        app_ble_read_req_valid = false;
+    }
 }
 
-void rsi_gatt_add_attribute_to_list(rsi_ble_t *p_val,
-                                    uint16_t handle,
-                                    uint16_t data_len,
-                                    uint8_t *data,
-                                    uuid_t uuid,
-                                    uint8_t char_prop)
+void rsi_gatt_add_attribute_to_list(rsi_ble_t *p_val, uint16_t handle, uint16_t data_len, uint8_t *data, uuid_t uuid, uint8_t char_prop)
 {
-  if ((p_val->DATA_ix + data_len) >= BLE_ATT_REC_SIZE) {
-      LOG_ERROR("BLE", "No data memory for att rec values");
+    if ((p_val->DATA_ix + data_len) >= BLE_ATT_REC_SIZE) {
+        LOG_ERROR("BLE", "No data memory for att rec values");
+        return;
+    }
+
+    p_val->att_rec_list[p_val->att_rec_list_count].char_uuid     = uuid;
+    p_val->att_rec_list[p_val->att_rec_list_count].handle        = handle;
+    p_val->att_rec_list[p_val->att_rec_list_count].len           = data_len;
+    p_val->att_rec_list[p_val->att_rec_list_count].max_value_len = data_len;
+    p_val->att_rec_list[p_val->att_rec_list_count].char_val_prop = char_prop;
+    memcpy(p_val->DATA + p_val->DATA_ix, data, data_len);
+    p_val->att_rec_list[p_val->att_rec_list_count].value = p_val->DATA + p_val->DATA_ix;
+    p_val->att_rec_list_count++;
+    p_val->DATA_ix += p_val->att_rec_list[p_val->att_rec_list_count].max_value_len;
+
     return;
-  }
-
-  p_val->att_rec_list[p_val->att_rec_list_count].char_uuid     = uuid;
-  p_val->att_rec_list[p_val->att_rec_list_count].handle        = handle;
-  p_val->att_rec_list[p_val->att_rec_list_count].len           = data_len;
-  p_val->att_rec_list[p_val->att_rec_list_count].max_value_len = data_len;
-  p_val->att_rec_list[p_val->att_rec_list_count].char_val_prop = char_prop;
-  memcpy(p_val->DATA + p_val->DATA_ix, data, data_len);
-  p_val->att_rec_list[p_val->att_rec_list_count].value = p_val->DATA + p_val->DATA_ix;
-  p_val->att_rec_list_count++;
-  p_val->DATA_ix += p_val->att_rec_list[p_val->att_rec_list_count].max_value_len;
-
-  return;
 }
 
 rsi_ble_att_list_t *rsi_gatt_get_attribute_from_list(rsi_ble_t *p_val, uint16_t handle)
@@ -263,13 +252,7 @@ static void rsi_ble_add_char_serv_att(void *serv_handler,
   return;
 }
 
-static void rsi_ble_add_char_val_att(void *serv_handler,
-                                     uint16_t handle,
-                                     uuid_t att_type_uuid,
-                                     uint8_t val_prop,
-                                     uint8_t *data,
-                                     uint8_t data_len,
-                                     uint8_t config_bitmap)
+static void rsi_ble_add_char_val_att(void *serv_handler, uint16_t handle, uuid_t att_type_uuid, uint8_t val_prop, uint8_t *data, uint8_t data_len, uint8_t config_bitmap)
 {
   rsi_ble_req_add_att_t new_att = { 0 };
 
@@ -614,12 +597,26 @@ void casa_ble_process(void *argument)
             }
           } break;
           case RSI_BLE_READ_REQ_EVENT: {
+            static const char ble_empty_read_response[] = "{}";
+            const char *payload = (pending_ble_response[0] != '\0') ? pending_ble_response : ble_empty_read_response;
+            uint16_t payload_len = (uint16_t)strlen(payload);
             rsi_ble_app_clear_event(RSI_BLE_READ_REQ_EVENT);
             app_ble_read_rsp_window_open = true;
-            printf("Read Request handled.\n");
-            if (pending_ble_response[0] != '\0') {
-              LOG_INFO("BLE", "Sending queued response on read request");
-              rsi_ble_send_json_response(pending_ble_response);
+            app_ble_read_req_valid = true;
+
+            int32_t read_status = ble_send_read_response_direct(payload, payload_len);
+            if (read_status != RSI_SUCCESS) {
+              LOG_ERROR("BLE", "Read response failed: 0x%lX", (uint32_t)read_status);
+              if (payload != pending_ble_response) {
+                strcpy(pending_ble_response, ble_empty_read_response);
+              }
+            } else {
+              if (payload == pending_ble_response) {
+                pending_ble_response[0] = '\0';
+                LOG_INFO("BLE", "Sent queued response on read request");
+              } else {
+                LOG_DEBUG("BLE", "Sent empty response for read keepalive");
+              }
             }
             app_ble_read_rsp_window_open = false;
             app_ble_read_req_valid = false;
@@ -633,6 +630,6 @@ void casa_ble_process(void *argument)
           default: {
           }
         }
-        osDelay(100);
+        osDelay(1);
   }
 }

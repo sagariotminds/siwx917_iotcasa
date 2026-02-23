@@ -308,7 +308,7 @@ void casa_registration(void)
                 mqtt_app_close();
                 osDelay(DELAY_2000S);
 //                udp_close();
-                wifi_close();
+//                wifi_close();
 //                gpio_set_level(WIFI_STATUS_LED_GPIO, HIGH);
                 mqtt_connection_check = false;
             } else if (casa_ctx.reg_status == REGISTRATION_DONE) {
