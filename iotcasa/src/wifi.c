@@ -290,30 +290,72 @@ bool wifi_sta(const char *ssid, const char *password)
   }
   LOG_INFO("WIFI", "Attempting to connect to %s...", ssid);
 
-  status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_PROFILE_ID_1);
-  if (status != SL_STATUS_OK) {
-      LOG_ERROR("WIFI", "sl_net_up error : 0x%lx", status);
-      return false;
-  }
+//  status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_PROFILE_ID_1);
+//  if (status != SL_STATUS_OK) {
+//      LOG_ERROR("WIFI", "sl_net_up error : 0x%lx", status);
+//      return false;
+//  }
 
   osThreadNew(wifi_sta_monitor_task, NULL, &thread_attributes);
+//  int retry_count = 0;
+//  status = SL_STATUS_FAIL;
+//  bool net_up_triggered = false;
+//  while (retry_count < WIFI_MAXIMUM_RETRY) {
+//
+//      if (casa_wifi_status.is_connected) {
+//            LOG_INFO("WIFI", "Connected Successfully!");
+//            is_wifi_connected = true;
+//            return true;
+//      } else {
+//          retry_count++;
+//          LOG_WARN("WIFI", "Connection failed (0x%lx). Retry %d/%d...", status, retry_count, WIFI_MAXIMUM_RETRY);
+//          osDelay(1000); // Give the stack time to breathe
+//      }
+//
+//      if (!net_up_triggered) {
+//          status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_PROFILE_ID_1);
+//          if (status == SL_STATUS_OK) {
+//              LOG_INFO("WIFI", "sl_net_up initiated successfully.");
+//              net_up_triggered = true;
+//          }
+//      }
+//  }
   int retry_count = 0;
-  while (1) {
-      if (casa_wifi_status.is_connected) {
-          LOG_INFO("WIFI", "Connected Successfully!");
-          is_wifi_connected = true;
-          break; // Exit retry loop
-      } else {
-          retry_count++;
-          LOG_WARN("WIFI", "Connection failed (0x%lx). Retry %d/%d...", status, retry_count, WIFI_MAXIMUM_RETRY);
-          osDelay(1000); // Give the stack time to breathe
-      }
-      if (retry_count > WIFI_MAXIMUM_RETRY) {
-          return false;
-      }
-  }
+    status = SL_STATUS_FAIL;
+    bool net_up_triggered = false;
 
-  return true;
+    LOG_INFO("WIFI", "Starting Wi-Fi connection sequence...");
+
+    while (retry_count < WIFI_MAXIMUM_RETRY) {
+
+        // 2. Trigger sl_net_up ONCE at the start (or if it failed to initiate)
+        if (!net_up_triggered) {
+            status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_PROFILE_ID_1);
+
+            if (status == SL_STATUS_OK || status == SL_STATUS_IN_PROGRESS) {
+                LOG_INFO("WIFI", "sl_net_up initiated (Status: 0x%lx).", status);
+                net_up_triggered = true;
+            } else {
+                LOG_ERROR("WIFI", "sl_net_up failed to start: 0x%lx", status);
+            }
+        }
+
+        // 3. Check for success (updated by monitor task/callbacks)
+        if (casa_wifi_status.is_connected) {
+              LOG_INFO("WIFI", "Connected Successfully!");
+              is_wifi_connected = true;
+              return true;
+        }
+
+        // 4. If not connected yet, wait and retry
+        retry_count++;
+        LOG_WARN("WIFI", "Waiting for connection... attempt %d/%d", retry_count, WIFI_MAXIMUM_RETRY);
+
+        // Increased to 2000ms: Wi-Fi handshakes (DHCP) need time.
+        // Fast polling can cause internal driver congestion.
+        osDelay(1000);
+    }
+  return false;
 }
 
 bool station_wifi_detailes_get(sl_net_wifi_client_profile_t *profile) {

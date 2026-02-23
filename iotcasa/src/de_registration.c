@@ -54,7 +54,8 @@ void dereg_device_details_json(void)
     cJSON_Delete(root);
     memset(casa_ctx.de_registration->dereg_details, 0, sizeof(casa_ctx.de_registration->dereg_details));
     strncpy(casa_ctx.de_registration->dereg_details, json, sizeof(casa_ctx.de_registration->dereg_details) - 1);
-    LOG_INFO(TAG, "Dereg details generated: %s", casa_ctx.de_registration->dereg_details);
+//    LOG_INFO(TAG, "Dereg details generated: %s", casa_ctx.de_registration->dereg_details);
+    printf("Dereg details generated: %s\r\n", casa_ctx.de_registration->dereg_details);
     free(json);
 }
 
