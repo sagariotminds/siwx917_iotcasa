@@ -126,6 +126,9 @@ bool registration_init(void)
 {
     casa_ctx.switch_interrupts = DISABLE;
     casa_ctx.reg_dereg_flag = true;
+    casa_ctx.registration->buffer_status = false;
+    casa_ctx.registration->ble_data_counter = 0;
+    memset(casa_ctx.registration->ble_buffer, 0, sizeof(casa_ctx.registration->ble_buffer));
 
     if (casa_ctx.reg_status != REGISTRATION_DONE) {
 //        ble_init();
@@ -313,6 +316,7 @@ void casa_registration(void)
 //                sl_wifi_stop_ap(SL_WIFI_AP_INTERFACE);
             }
 
+            printf("*****************************reg final****************************************\r\n");
             osDelay(DELAY_2000S);
 //            stop_ble_service();
 //            if(casa_ctx.reg_status == REGISTRATION_DONE) {

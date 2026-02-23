@@ -496,7 +496,8 @@ void casa_ble_process(void *argument)
         event_id = rsi_ble_app_get_event();
         if (event_id == -1) {
           osSemaphoreAcquire(ble_main_task_sem, osWaitForever);
-          return;
+//          return;
+          continue;
         }
 
         switch (event_id) {
