@@ -302,26 +302,21 @@ void casa_registration(void)
                 if (strlen(casa_ctx.registration->ble_buffer) != 0) {
                     rsi_ble_send_json_response(reg_final_response);
                     osDelay(DELAY_2000S);
-//                } else {
-//                    reg_resp_handler(reg_final_response);
                 }
                 mqtt_app_close();
                 osDelay(DELAY_2000S);
-//                udp_close();
-//                wifi_close();
+                wifi_close();
 //                gpio_set_level(WIFI_STATUS_LED_GPIO, HIGH);
                 mqtt_connection_check = false;
-            } else if (casa_ctx.reg_status == REGISTRATION_DONE) {
-//                sl_net_down(SL_NET_WIFI_AP_INTERFACE);
-//                sl_wifi_stop_ap(SL_WIFI_AP_INTERFACE);
+            }
+            else if (casa_ctx.reg_status == REGISTRATION_DONE) {
+                sl_net_down(SL_NET_WIFI_AP_INTERFACE);
+                sl_wifi_stop_ap(SL_WIFI_AP_INTERFACE);
             }
 
             printf("*****************************reg final****************************************\r\n");
             osDelay(DELAY_2000S);
-//            stop_ble_service();
-//            if(casa_ctx.reg_status == REGISTRATION_DONE) {
-//                udp_close();
-//            }
+            stop_ble_service();
             casa_ctx.switch_interrupts = ENABLE;
             casa_ctx.reg_dereg_flag = false;
             ssl_connection_error = false;

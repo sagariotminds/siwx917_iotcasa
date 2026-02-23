@@ -232,16 +232,24 @@ void mqtt_event_handler(void *client, sl_mqtt_client_event_t event,
 // Global config structures for Si917
 void mqtt_app_close(void)
 {
-  sl_status_t status;
-//  if(mqtt_client.state != SL_MQTT_CLIENT_DISCONNECTED) {
-      status = sl_mqtt_client_disconnect(&mqtt_client, 5000);
+    sl_status_t status;
+    status = sl_mqtt_client_disconnect(&mqtt_client, 5000);
+    if (status == SL_STATUS_OK) {
+        LOG_ERROR("MQTT", "Disconnect failed: 0x%lx", status);
+        sl_mqtt_client_deinit(&mqtt_client); // Important: Frees the hardware socket
+        mqtt_connection_check = false;
+        LOG_INFO("MQTT", "MQTT Session Closed");
+    }
+    if (mqttConnectHandle != NULL) {
+       status = osThreadTerminate(mqttConnectHandle);
+
       if (status == SL_STATUS_OK) {
-          LOG_ERROR("MQTT", "Disconnect failed: 0x%lx", status);
-          sl_mqtt_client_deinit(&mqtt_client); // Important: Frees the hardware socket
-          mqtt_connection_check = false;
-          LOG_INFO("MQTT", "MQTT Session Closed");
+          LOG_INFO("MQTT", "MQTT Thread deleted successfully.");
+          mqttConnectHandle = NULL; // Reset handle to prevent double-deletion
+      } else {
+          LOG_ERROR("MQTT", "Failed to delete MQTT Thread: %d", status);
       }
-//  }
+    }
 }
 
 bool Mqtt_publish(const char *Topic, const char *string)
