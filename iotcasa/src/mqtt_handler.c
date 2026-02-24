@@ -265,9 +265,9 @@ bool Mqtt_publish(const char *Topic, const char *string)
   publish_message.is_retained          = IS_MESSAGE_RETAINED;
   publish_message.is_duplicate_message = IS_DUPLICATE_MESSAGE;
   publish_message.topic                = (uint8_t *)Topic;
-  publish_message.topic_length         = strlen(Topic);
+  publish_message.topic_length         = (uint32_t)strlen(Topic);
   publish_message.content              = (uint8_t *)string;
-  publish_message.content_length       = strlen(string);
+  publish_message.content_length       = (uint32_t)strlen(string);
 
 //  return sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
   sl_status_t status = sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);

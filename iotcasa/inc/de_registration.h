@@ -23,8 +23,8 @@
 
 #define  DEREG_SOURCE_LEN            10                              /* Length to store "manual" or "mobile" deregistration */
 #define  CLOUD_DESC_MSG_LEN          100                             /* description message length from cloud */
-#define  DEREG_AUTHTOK_LEN           1500                            /* length to store the de registration details json */
-#define  DEREG_DETAILS_JSON_LEN      3000                            /* length to store the de registration details json */
+#define  DEREG_AUTHTOK_LEN           1100                            /* length to store the de registration details json */
+#define  DEREG_DETAILS_JSON_LEN      1500                            /* length to store the de registration details json */
 
 #define  CLOUD_DEREG_RESP_TICKER     500                             /* Timer to check the de reg resp from cloud for every 500 milli seconds */
 #define  CLOUD_DE_REG_RESP_TIMEOUT   40                              /* current = 20 secends, device de registration resp(cloud) timeout */

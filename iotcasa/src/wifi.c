@@ -42,11 +42,11 @@ casa_wifi_status_t casa_wifi_status = {0};
 extern casa_context_t casa_ctx;
 bool internet_status = false;
 bool wifi_connected = false;  // Track previous connection state
+osThreadId_t wifiConnectHandle = NULL;
 
 
 
-
-const osThreadAttr_t thread_attributes = {
+const osThreadAttr_t wifi_thread_attributes = {
   .name       = "ap_app",
   .stack_size = 8000,
   .priority   = osPriorityHigh,
@@ -290,36 +290,16 @@ bool wifi_sta(const char *ssid, const char *password)
   }
   LOG_INFO("WIFI", "Attempting to connect to %s...", ssid);
 
-//  status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_PROFILE_ID_1);
-//  if (status != SL_STATUS_OK) {
-//      LOG_ERROR("WIFI", "sl_net_up error : 0x%lx", status);
-//      return false;
-//  }
 
-  osThreadNew(wifi_sta_monitor_task, NULL, &thread_attributes);
-//  int retry_count = 0;
-//  status = SL_STATUS_FAIL;
-//  bool net_up_triggered = false;
-//  while (retry_count < WIFI_MAXIMUM_RETRY) {
-//
-//      if (casa_wifi_status.is_connected) {
-//            LOG_INFO("WIFI", "Connected Successfully!");
-//            is_wifi_connected = true;
-//            return true;
-//      } else {
-//          retry_count++;
-//          LOG_WARN("WIFI", "Connection failed (0x%lx). Retry %d/%d...", status, retry_count, WIFI_MAXIMUM_RETRY);
-//          osDelay(1000); // Give the stack time to breathe
-//      }
-//
-//      if (!net_up_triggered) {
-//          status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_PROFILE_ID_1);
-//          if (status == SL_STATUS_OK) {
-//              LOG_INFO("WIFI", "sl_net_up initiated successfully.");
-//              net_up_triggered = true;
-//          }
-//      }
-//  }
+  wifiConnectHandle = NULL;
+
+  wifiConnectHandle = osThreadNew(wifi_sta_monitor_task, NULL, &wifi_thread_attributes);
+  if (wifiConnectHandle != NULL) {
+      LOG_INFO("WIFI", "Wi-Fi Connection checking task created.");
+  } else {
+      LOG_ERROR("WIFI", "Wi-Fi Connection checking task not created.");
+  }
+
   int retry_count = 0;
     status = SL_STATUS_FAIL;
     bool net_up_triggered = false;

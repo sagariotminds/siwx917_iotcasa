@@ -50,7 +50,23 @@ iotcasa/src/casa_module.o: ../iotcasa/src/casa_module.c \
  c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net.h \
  c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_types.h \
  c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_constants.h \
- c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_ip_types.h
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_ip_types.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_si91x_driver.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\firmware_upgrade\firmware_upgradation.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_si91x_host_interface.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_rsi_utility.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\protocol\wifi\inc\sl_wifi_callback_framework.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sli_cmsis_os2_ext_task_register.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\autogen/sl_component_catalog.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\freertos.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\projdefs.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\portable.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\deprecated_definitions.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\portable\gcc\arm_cm4f\portmacro.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\mpu_wrappers.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\task.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\list.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_status.h
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_log.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/iotcasa_types.h:
@@ -103,3 +119,19 @@ c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\compone
 c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_types.h:
 c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_constants.h:
 c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\network_manager\inc\sl_net_ip_types.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_si91x_driver.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\firmware_upgrade\firmware_upgradation.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_si91x_host_interface.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\device\silabs\si91x\wireless\inc\sl_rsi_utility.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\protocol\wifi\inc\sl_wifi_callback_framework.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sli_cmsis_os2_ext_task_register.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\autogen/sl_component_catalog.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\freertos.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\projdefs.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\portable.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\deprecated_definitions.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\portable\gcc\arm_cm4f\portmacro.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\mpu_wrappers.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\task.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\list.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_status.h:

@@ -15,6 +15,8 @@
 static const char *TAG = "De-Reg";
 
 extern casa_context_t casa_ctx;
+extern osThreadId_t mqttConnectHandle;
+extern osThreadId_t wifiConnectHandle;
 extern bool mqtt_connection_check;
 extern bool ssl_connection_error;
 extern bool device_status_report;
@@ -43,9 +45,9 @@ void dereg_device_details_json(void)
     cJSON_AddNumberToObject(root, "requestId",     (double)casa_ctx.de_registration->requestId);
     cJSON_AddStringToObject(root, "action",        DEREG_ACTION);
     cJSON_AddStringToObject(root, "reqFrom",       casa_ctx.de_registration->dereg_from);
-    cJSON_AddStringToObject(root, "authorization", casa_ctx.de_registration->authtoken);
+    cJSON_AddStringToObject(root, "authorization", " Manual");
 //    cJSON_AddStringToObject(root, "reqFrom",       "mobile");
-//    cJSON_AddStringToObject(root, "authorization", "Manual");
+//    cJSON_AddStringToObject(root, "authorization", "123451234567890123456789011111111111111111111111111111111111111111111111111111111111111111111111111111111111111111112345612348900jb250ZW50LmNvbS9hL0FJdGJ2bW1qQVhFTkpIa1hVdlNaSDN6R3ZCdnhQQ2F0MXVWQklGMjAtUzB5PXM5Ni1jIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tiYXV0aF90aW1lIjoxNzY3MzI3MTY0LCJ1c2VyX2lkIjoiYXljNko2OEtUWFROOENPUHNDRGs4YU5UR0p4MiIsInN1YiI6ImF5YzZKNjhLVFhUTjhDT1BzQ0RrOGFOVEdKeDIiLCJpYXQiOjE3NzE5MDYyNDAsImV4cCI6MTc3MTkwOTg0MCwiZW1haWwiOiJzYWdhckBpb3RtaW5kcy5pbiIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7Imdvb2dsZS5jb20iOlsiMTAxMTY0MTU4OTQ0MTc3NDYxMjkxIl0sImVtYWlsIjpbInNhZ2FyQGlvdG1pbmRzLmluIl19LCJzaWduX2luX3Byb3ZpZGVyIjoiZ29vZ2xlLm");
     cJSON_AddStringToObject(root, "deviceId",      casa_ctx.uniqueid);
     cJSON_AddStringToObject(root, "locId",         casa_ctx.location);
     cJSON_AddStringToObject(root, "ownedBy",       casa_ctx.userid);
@@ -185,10 +187,32 @@ void casa_deregistration(void)
 //            }
 //        }
         casa_ctx.current_operation = REGISTRATION;
+        if (mqttConnectHandle != NULL) {
+            sl_status_t status = osThreadTerminate(mqttConnectHandle);
+
+          if (status == SL_STATUS_OK) {
+              LOG_INFO("DEREG", "MQTT Thread deleted successfully.");
+              mqttConnectHandle = NULL; // Reset handle to prevent double-deletion
+          } else {
+              LOG_ERROR("DEREG", "Failed to delete MQTT Thread: %d", status);
+          }
+        }
+
+        if (wifiConnectHandle != NULL) {
+            sl_status_t status = osThreadTerminate(wifiConnectHandle);
+
+          if (status == SL_STATUS_OK) {
+              LOG_INFO("DEREG", "WIFI Thread deleted successfully.");
+              wifiConnectHandle = NULL; // Reset handle to prevent double-deletion
+          } else {
+              LOG_ERROR("DEREG", "WIFI to delete MQTT Thread: %d", status);
+          }
+        }
 //        if(mqttConnectHandle != NULL){
 //           vTaskDelete(mqttConnectHandle);
 //           LOG_INFO(TAG, "MQTT task deleted success.\n");
 //        }
+
         osDelay(DELAY_500S);
         casa_ctx.switch_interrupts = ENABLE;
         break;

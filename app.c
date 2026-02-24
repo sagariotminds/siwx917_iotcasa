@@ -23,11 +23,6 @@
 
 #include <casa_log.h>
 #include <gpio_control.h>
-#include "sl_wifi.h"
-#include "sl_wifi_types.h"
-#include "sl_si91x_driver.h"
-#include "sl_wifi_callback_framework.h"
-
 
 #include "iotcasa_types.h"
 #include "casa_module.h"
@@ -38,7 +33,7 @@
 #include "eeprom_manage.h"
 #include "mqtt_handler.h"
 
-extern sl_wifi_device_configuration_t sl_wifi_triple_mode_configuration;
+
 extern casa_context_t casa_ctx;
 
 #include "FreeRTOS.h"
@@ -125,14 +120,6 @@ void casa_app_process_action(void *argument)
 void app_init(void)
 {
   LOG_INFO("APP", "========== app_init started ==========");
-
-  sl_status_t status;
-
-  status = sl_wifi_init(&sl_wifi_triple_mode_configuration, NULL, sl_wifi_default_event_handler);
-  if (status != SL_STATUS_OK) {
-      LOG_ERROR("APP", "Wi-Fi Initialization Failed, Error Code : 0x%lX", status);
-    return;
-  }
 
   /* Print memory snapshot at startup */
   print_overall_app_memory("STARTUP");

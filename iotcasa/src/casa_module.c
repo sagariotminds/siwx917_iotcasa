@@ -13,11 +13,22 @@
 #include "sl_net.h"
 #include "sl_wifi_types.h"
 
+#include "sl_wifi_types.h"
+#include "sl_si91x_driver.h"
+#include "sl_wifi_callback_framework.h"
+
 casa_context_t casa_ctx = {0};
+extern sl_wifi_device_configuration_t sl_wifi_triple_mode_configuration;
 
 void set_device_id_and_hostname() {
     sl_status_t status;
     sl_mac_address_t mac_addr;
+
+    status = sl_wifi_init(&sl_wifi_triple_mode_configuration, NULL, sl_wifi_default_event_handler);
+    if (status != SL_STATUS_OK) {
+        LOG_ERROR("APP", "Wi-Fi Initialization Failed, Error Code : 0x%lX", status);
+      return;
+    }
 
     // 1. Get MAC Address (The "EFUSE" equivalent in Si91x)
     status = sl_wifi_get_mac_address(SL_WIFI_CLIENT_INTERFACE, &mac_addr);
