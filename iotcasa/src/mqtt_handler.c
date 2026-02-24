@@ -254,6 +254,8 @@ void mqtt_app_close(void)
 
 bool Mqtt_publish(const char *Topic, const char *string)
 {
+  printf("Topic : %s\r\n string : %s\r\n msg len : %d\r\n",Topic,string,strlen(string));
+
   if ((Topic == NULL) || (string == NULL) || !mqtt_connection_check) {
       LOG_WARN("MQTT", "Publish skipped: invalid params or MQTT disconnected");
       return false;
@@ -408,7 +410,7 @@ bool mqtt_app_start(void)
 void mqtt_reconnection_check(void *arg)
 {
   (void)arg;
-  uint32_t counter = 0;
+//  uint32_t counter = 0;
   uint32_t slow_loop_timer = 0;
 //  sl_mqtt_client_message_t publish_message;
 
@@ -454,9 +456,9 @@ void mqtt_reconnection_check(void *arg)
               }
 
               // 3. Periodic Publishing
-              char message_payload[128];
-              snprintf(message_payload, sizeof(message_payload), "%s%lu", PUBLISH_MESSAGE_BASE, counter++);
-              Mqtt_publish(PUBLISH_TOPIC, message_payload);
+//              char message_payload[128];
+//              snprintf(message_payload, sizeof(message_payload), "%s%lu", PUBLISH_MESSAGE_BASE, counter++);
+//             Mqtt_publish(PUBLISH_TOPIC, message_payload);
 
 //              publish_message.qos_level            = QOS_OF_PUBLISH_MESSAGE;
 //              publish_message.is_retained          = IS_MESSAGE_RETAINED;

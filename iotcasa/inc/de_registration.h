@@ -75,8 +75,8 @@ void casa_deregistration(void);
 /**
  * @brief     Construct device deregistration device details data to send to CASA cloud.
  * @param[in] None
- *  @return    Heap-allocated JSON string (caller must free), NULL on failure.
+ * @return    None
  */
-char *dereg_device_details_json(void);
+void dereg_device_details_json(void);
 
 #endif /* DE_REGISTRATION_H_ */
