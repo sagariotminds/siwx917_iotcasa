@@ -240,20 +240,24 @@ void mqtt_app_close(void)
         mqtt_connection_check = false;
         LOG_INFO("MQTT", "MQTT Session Closed");
     }
-    if (mqttConnectHandle != NULL) {
-       status = osThreadTerminate(mqttConnectHandle);
-
-      if (status == SL_STATUS_OK) {
-          LOG_INFO("MQTT", "MQTT Thread deleted successfully.");
-          mqttConnectHandle = NULL; // Reset handle to prevent double-deletion
-      } else {
-          LOG_ERROR("MQTT", "Failed to delete MQTT Thread: %d", status);
-      }
-    }
+//    if (mqttConnectHandle != NULL) {
+//       status = osThreadTerminate(mqttConnectHandle);
+//
+//      if (status == SL_STATUS_OK) {
+//          LOG_INFO("MQTT", "MQTT Thread deleted successfully.");
+//          mqttConnectHandle = NULL; // Reset handle to prevent double-deletion
+//      } else {
+//          LOG_ERROR("MQTT", "Failed to delete MQTT Thread: %d", status);
+//      }
+//    }
 }
 
 bool Mqtt_publish(const char *Topic, const char *string)
 {
+  if ((Topic == NULL) || (string == NULL) || !mqtt_connection_check) {
+      LOG_WARN("MQTT", "Publish skipped: invalid params or MQTT disconnected");
+      return false;
+  }
   sl_mqtt_client_message_t publish_message;
   publish_message.qos_level            = QOS_OF_PUBLISH_MESSAGE;
   publish_message.is_retained          = IS_MESSAGE_RETAINED;
@@ -263,7 +267,14 @@ bool Mqtt_publish(const char *Topic, const char *string)
   publish_message.content              = (uint8_t *)string;
   publish_message.content_length       = strlen(string);
 
-  return sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
+//  return sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
+  sl_status_t status = sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
+  if (status != SL_STATUS_OK) {
+      LOG_WARN("MQTT", "Publish failed: 0x%lx", status);
+      return false;
+  }
+
+  return true;
 }
 
 bool mqtt_secure_config(bool input)
@@ -399,7 +410,7 @@ void mqtt_reconnection_check(void *arg)
   (void)arg;
   uint32_t counter = 0;
   uint32_t slow_loop_timer = 0;
-  sl_mqtt_client_message_t publish_message;
+//  sl_mqtt_client_message_t publish_message;
 
   while(true) {
       // --- SECTION 1: FAST LOGIC (Executes every 50ms) ---
@@ -445,22 +456,23 @@ void mqtt_reconnection_check(void *arg)
               // 3. Periodic Publishing
               char message_payload[128];
               snprintf(message_payload, sizeof(message_payload), "%s%lu", PUBLISH_MESSAGE_BASE, counter++);
+              Mqtt_publish(PUBLISH_TOPIC, message_payload);
 
-              publish_message.qos_level            = QOS_OF_PUBLISH_MESSAGE;
-              publish_message.is_retained          = IS_MESSAGE_RETAINED;
-              publish_message.is_duplicate_message = IS_DUPLICATE_MESSAGE;
-              publish_message.topic                = (uint8_t *)PUBLISH_TOPIC;
-              publish_message.topic_length         = strlen(PUBLISH_TOPIC);
-              publish_message.content              = (uint8_t *)message_payload;
-              publish_message.content_length       = strlen(message_payload);
-
-              sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
+//              publish_message.qos_level            = QOS_OF_PUBLISH_MESSAGE;
+//              publish_message.is_retained          = IS_MESSAGE_RETAINED;
+//              publish_message.is_duplicate_message = IS_DUPLICATE_MESSAGE;
+//              publish_message.topic                = (uint8_t *)PUBLISH_TOPIC;
+//              publish_message.topic_length         = strlen(PUBLISH_TOPIC);
+//              publish_message.content              = (uint8_t *)message_payload;
+//              publish_message.content_length       = strlen(message_payload);
+//
+//              sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
           }
       }
 
-      if (slow_loop_timer >= 20) {
-          printf("mqtt_connection_check : %d, internet_status: %d\r\n",mqtt_connection_check, internet_status);
-      }
+//      if (slow_loop_timer >= 20) {
+//          printf("mqtt_connection_check : %d, internet_status: %d\r\n",mqtt_connection_check, internet_status);
+//      }
 
       // Small delay to drive the 50ms timing
       osDelay(50);

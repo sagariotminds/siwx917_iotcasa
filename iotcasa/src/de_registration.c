@@ -31,32 +31,41 @@ void exit_de_registration(void)
   casa_ctx.reg_dereg_flag = 0;
 }
 
-void dereg_device_details_json(void)
+char *dereg_device_details_json(void)
 {
     // 1. Create Root Object
     cJSON *root = cJSON_CreateObject();
     if (root == NULL) {
         LOG_ERROR(TAG, "Execution: FAILED - Root allocation");
-        return;
+        return NULL;
     }
 
     cJSON_AddNumberToObject(root, "requestId",     (double)casa_ctx.de_registration->requestId);
     cJSON_AddStringToObject(root, "action",        DEREG_ACTION);
     cJSON_AddStringToObject(root, "reqFrom",       casa_ctx.de_registration->dereg_from);
     cJSON_AddStringToObject(root, "authorization", casa_ctx.de_registration->authtoken);
+//    cJSON_AddStringToObject(root, "reqFrom",       "mobile");
+//    cJSON_AddStringToObject(root, "authorization", "Manual");
     cJSON_AddStringToObject(root, "deviceId",      casa_ctx.uniqueid);
     cJSON_AddStringToObject(root, "locId",         casa_ctx.location);
     cJSON_AddStringToObject(root, "ownedBy",       casa_ctx.userid);
     cJSON_AddStringToObject(root, "eBy",           casa_ctx.event_by);
     cJSON_AddStringToObject(root, "eById",         casa_ctx.event_by_id);
 
-    char* json = cJSON_PrintUnformatted(root);
+    char *json = cJSON_PrintUnformatted(root);
     cJSON_Delete(root);
-    memset(casa_ctx.de_registration->dereg_details, 0, sizeof(casa_ctx.de_registration->dereg_details));
-    strncpy(casa_ctx.de_registration->dereg_details, json, sizeof(casa_ctx.de_registration->dereg_details) - 1);
-//    LOG_INFO(TAG, "Dereg details generated: %s", casa_ctx.de_registration->dereg_details);
-    printf("Dereg details generated: %s\r\n", casa_ctx.de_registration->dereg_details);
-    free(json);
+//    memset(casa_ctx.de_registration->dereg_details, 0, sizeof(casa_ctx.de_registration->dereg_details));
+//    strncpy(casa_ctx.de_registration->dereg_details, json, sizeof(casa_ctx.de_registration->dereg_details) - 1);
+////    LOG_INFO(TAG, "Dereg details generated: %s", casa_ctx.de_registration->dereg_details);
+//    printf("Dereg details generated: %s\r\n", casa_ctx.de_registration->dereg_details);
+//    free(json);
+    if (json == NULL) {
+            LOG_ERROR(TAG, "Execution: FAILED - JSON print allocation");
+            return NULL;
+        }
+
+        LOG_INFO(TAG, "Dereg details generated len=%u", (unsigned int)strlen(json));
+        return json;
 }
 
 void cloud_dereg_status_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
@@ -119,8 +128,21 @@ void casa_deregistration(void)
               }
               break;
           }
-          dereg_device_details_json();
-          Mqtt_publish(DE_REG_MQTT_PUB_TOPIC, casa_ctx.de_registration->dereg_details);
+//          dereg_device_details_json();
+//          Mqtt_publish(DE_REG_MQTT_PUB_TOPIC, casa_ctx.de_registration->dereg_details);
+          char *dereg_json = dereg_device_details_json();
+          if (dereg_json == NULL) {
+              LOG_ERROR(TAG, "De-registration JSON generation failed.");
+              break;
+          }
+
+          if (!Mqtt_publish(DE_REG_MQTT_PUB_TOPIC, dereg_json)) {
+              free(dereg_json);
+              LOG_WARN(TAG, "De-registration publish failed, will retry.");
+              break;
+          }
+
+          free(dereg_json);
           sl_status_t status = sl_sleeptimer_start_periodic_timer_ms( &de_registration_periodic_timer, PERIODIC_TIMER,
                                                                       cloud_dereg_status_callback, NULL,  0, 0);
           if (status == SL_STATUS_OK) {

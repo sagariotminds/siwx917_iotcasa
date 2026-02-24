@@ -18,7 +18,7 @@
 #define  NODETYPE_SWITCH           "switch"                        /* Node type of CASA module */
 #define  CLOUD_REG_MQTT_TOPIC      "/device/registration"          /* Cloud registration mqtt topic */
 
-#define  AUTHTOK_LEN               1000                             /* Authentication token maximum length */
+#define  AUTHTOK_LEN               100                             /* Authentication token maximum length */
 #define  ENDPOINT_LEN              35                              /* Endpoint data maximum length */
 #define  DISC_TOK_LEN              50                              /* Discovery token maximum length */
 #define  REG_BUFFER_SIZE           1000                            /* Registration buffer size maximum length */

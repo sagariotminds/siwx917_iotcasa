@@ -23,7 +23,8 @@
 
 #define  DEREG_SOURCE_LEN            10                              /* Length to store "manual" or "mobile" deregistration */
 #define  CLOUD_DESC_MSG_LEN          100                             /* description message length from cloud */
-#define  DEREG_DETAILS_JSON_LEN      2000                            /* length to store the de registration details json */
+#define  DEREG_AUTHTOK_LEN           1500                            /* length to store the de registration details json */
+#define  DEREG_DETAILS_JSON_LEN      3000                            /* length to store the de registration details json */
 
 #define  CLOUD_DEREG_RESP_TICKER     500                             /* Timer to check the de reg resp from cloud for every 500 milli seconds */
 #define  CLOUD_DE_REG_RESP_TIMEOUT   40                              /* current = 20 secends, device de registration resp(cloud) timeout */
@@ -31,7 +32,7 @@
 /* Device De-registration process vairables, created using malloc() and will be cleared after the deregistration process */
 typedef struct de_registration_context_s {
     uint8_t       current_op;                                         /* Current De registration operation */
-    char          authtoken[AUTHTOK_LEN];                             /* Authorization token */
+    char          authtoken[DEREG_AUTHTOK_LEN];                       /* Authorization token */
     char          dereg_details[DEREG_DETAILS_JSON_LEN];              /* De registration json buffer */
     char          dereg_from[DEREG_SOURCE_LEN];                       /* Buffer to store how the De registration is happening(manual or mobile) */
     char          cloud_description_msg[CLOUD_DESC_MSG_LEN];          /* Buffer to store cloud description message*/
@@ -74,8 +75,8 @@ void casa_deregistration(void);
 /**
  * @brief     Construct device deregistration device details data to send to CASA cloud.
  * @param[in] None
- * @return    None
+ *  @return    Heap-allocated JSON string (caller must free), NULL on failure.
  */
-void dereg_device_details_json(void);
+char *dereg_device_details_json(void);
 
 #endif /* DE_REGISTRATION_H_ */
