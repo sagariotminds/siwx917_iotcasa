@@ -37,6 +37,8 @@
 #define PING_SIZE         64
 #define PING_TIMEOUT_MS   2000
 
+#define CASA_WIFI_PROFILE_ID SL_NET_DEFAULT_WIFI_CLIENT_PROFILE_ID
+
 static volatile bool is_wifi_connected = false;
 casa_wifi_status_t casa_wifi_status = {0};
 extern casa_context_t casa_ctx;
@@ -203,13 +205,12 @@ static bool check_internet_connectivity(void)
               (struct sockaddr *)&server_addr,
               sizeof(server_addr)) == 0) {
 
-    LOG_INFO("WIFI", "Internet AVAILABLE");
+//    LOG_INFO("WIFI", "Internet AVAILABLE");
     close(sock);
     return true;
   }
-  LOG_WARN("WIFI", "Internet NOT available");
+//  LOG_WARN("WIFI", "Internet NOT available");
   close(sock);
-  printf("check_internet_connectivity end \r\n");
   return false;
 }
 
@@ -247,10 +248,6 @@ bool wifi_sta(const char *ssid, const char *password)
   casa_sta_profile.config.ssid.length = ssid_len;
 
   size_t host_len = strlen(casa_ctx.hostname);
-//  if (host_len >= sizeof(casa_sta_profile.ip.host_name)) {
-//      LOG_ERROR("WIFI", "Hostname too long");
-//      return false;
-//  }
   memcpy(casa_sta_profile.ip.host_name, casa_ctx.hostname, host_len);
 
   LOG_INFO("WIFI", "Initializing STA mode");
@@ -283,7 +280,7 @@ bool wifi_sta(const char *ssid, const char *password)
       return false;
   }
 
-  status = sl_net_set_profile(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_PROFILE_ID_1, &casa_sta_profile);
+  status = sl_net_set_profile(SL_NET_WIFI_CLIENT_INTERFACE, CASA_WIFI_PROFILE_ID, &casa_sta_profile);
   if (status != SL_STATUS_OK) {
       LOG_ERROR("WIFI", "Profile set failed: 0x%lx", status);
       return false;
@@ -291,7 +288,10 @@ bool wifi_sta(const char *ssid, const char *password)
   LOG_INFO("WIFI", "Attempting to connect to %s...", ssid);
 
 
-  wifiConnectHandle = NULL;
+  if (wifiConnectHandle != NULL) {
+      osThreadTerminate(wifiConnectHandle);
+      wifiConnectHandle = NULL;
+  }
 
   wifiConnectHandle = osThreadNew(wifi_sta_monitor_task, NULL, &wifi_thread_attributes);
   if (wifiConnectHandle != NULL) {
@@ -310,7 +310,7 @@ bool wifi_sta(const char *ssid, const char *password)
 
         // 2. Trigger sl_net_up ONCE at the start (or if it failed to initiate)
         if (!net_up_triggered) {
-            status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_PROFILE_ID_1);
+            status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, CASA_WIFI_PROFILE_ID);
 
             if (status == SL_STATUS_OK || status == SL_STATUS_IN_PROGRESS) {
                 LOG_INFO("WIFI", "sl_net_up initiated (Status: 0x%lx).", status);
@@ -369,7 +369,8 @@ void station_wifi_status_clear(void) {
   memset(casa_wifi_status.ip_str, 0, sizeof(casa_wifi_status.ip_str));
   casa_wifi_status.rssi = 0;
   casa_wifi_status.is_connected = false;
-  check_internet_connectivity();
+  internet_status = false;
+  is_wifi_connected = false;
 }
 
 void wifi_sta_monitor_task(void *argument)
@@ -382,12 +383,15 @@ void wifi_sta_monitor_task(void *argument)
   while (1) {
       int32_t rssi = 0;
       sl_net_wifi_client_profile_t profile = {0};
+      sl_status_t profile_status;
 
       // 1. Check current status
       sl_status_t rssi_status = sl_wifi_get_signal_strength(SL_WIFI_CLIENT_INTERFACE, &rssi);
-      sl_net_get_profile(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_DEFAULT_WIFI_CLIENT_PROFILE_ID, (sl_net_profile_t *)&profile);
+//      sl_net_get_profile(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_DEFAULT_WIFI_CLIENT_PROFILE_ID, (sl_net_profile_t *)&profile);
+      profile_status = sl_net_get_profile(SL_NET_WIFI_CLIENT_INTERFACE, CASA_WIFI_PROFILE_ID, (sl_net_profile_t *)&profile);
 
-      casa_wifi_status.is_connected = (rssi_status == SL_STATUS_OK) && (rssi < 0) && (profile.ip.ip.v4.ip_address.value != 0);
+//      casa_wifi_status.is_connected = (rssi_status == SL_STATUS_OK) && (rssi < 0) && (profile.ip.ip.v4.ip_address.value != 0);
+      casa_wifi_status.is_connected = (rssi_status == SL_STATUS_OK) && (profile_status == SL_STATUS_OK) && (rssi < 0) && (profile.ip.ip.v4.ip_address.value != 0);
 
       if (casa_wifi_status.is_connected) {
           // Always update RSSI every cycle
@@ -406,15 +410,8 @@ void wifi_sta_monitor_task(void *argument)
           }
 
           if (check_internet_connectivity()) {
-//          if (1) {
-              LOG_INFO("WIFI", "Internet AVAILABLE");
               LOG_INFO("WIFI", "Internet OK ✅");
               internet_status = 1;
-
-//              if(mqtt_started) {
-//                  mqtt_connection_task_create();
-//                  mqtt_started = 0;
-//              }
           } else {
               LOG_ERROR("WIFI", "No Internet ❌");
               internet_status = 0;
@@ -435,17 +432,15 @@ void wifi_sta_monitor_task(void *argument)
           sl_net_down(SL_NET_WIFI_CLIENT_INTERFACE);
           osDelay(2000);
 
-          sl_status_t status = sl_net_set_profile(SL_NET_WIFI_CLIENT_INTERFACE,
-                                      SL_NET_DEFAULT_WIFI_CLIENT_PROFILE_ID,
-                                      (const sl_net_profile_t *)&casa_sta_profile);
+          sl_status_t status = sl_net_set_profile(SL_NET_WIFI_CLIENT_INTERFACE, CASA_WIFI_PROFILE_ID, (const sl_net_profile_t *)&casa_sta_profile);
 
           if (status != SL_STATUS_OK) {
               LOG_ERROR("WIFI", "Profile Re-set failed: 0x%lx", status);
           }
 
           // Step C: Attempt Rejoin
-          LOG_INFO("WIFI", "Attempting Rejoin to: %s", MY_WIFI_CLIENT_PROFILE_SSID);
-          sl_status_t join_status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, SL_NET_DEFAULT_WIFI_CLIENT_PROFILE_ID);
+          LOG_INFO("WIFI", "Attempting Rejoin to: %s", casa_sta_profile.config.ssid.value);
+          sl_status_t join_status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, CASA_WIFI_PROFILE_ID);
 
           if (join_status == SL_STATUS_OK) {
             LOG_INFO("WIFI", "Join Success. Waiting for DHCP...");

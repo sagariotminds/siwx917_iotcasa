@@ -149,7 +149,7 @@ void construct_status_update_json(void)
     char* json = cJSON_Print(root);
     cJSON_Delete(root);
     cJSON_Minify(json);
-    LOG_INFO(TAG, "Device status update : %s",(char *)json);
+//    LOG_INFO(TAG, "Device status update : %s",(char *)json);
     Mqtt_publish(mqtt_pub_topic, json);
     free(json);
 }

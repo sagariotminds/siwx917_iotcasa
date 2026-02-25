@@ -48,6 +48,7 @@ static const char *TAG = "MQTTS";
 #define ENCRYPT_CONNECTION     1
 #define SEND_CREDENTIALS       1
 #define CERTIFICATE_INDEX      1
+#define MQTT_CONN_RETRY_LIMIT  30                         /* MQTT connection retry limit 30 -> 15 sec */
 #define KEEP_ALIVE_INTERVAL    60
 #define MQTT_CONNECT_TIMEOUT   5000
 #define MQTT_KEEPALIVE_RETRIES 3
@@ -147,28 +148,19 @@ void mqtt_message_callback(void *client, sl_mqtt_client_message_t *message, void
   UNUSED_PARAMETER(client);
   UNUSED_PARAMETER(context);
 
-//  LOG_INFO("MQTT", "TOPIC=%.*s", message->topic_length, message->topic);
-//  LOG_INFO("MQTT", "DATA=%.*s", message->content_length, message->content);
   if (message == NULL || message->content == NULL || message->content_length == 0) {
-//     LOG_WARN("MQTT", "Received empty MQTT payload");
+  //     LOG_WARN("MQTT", "Received empty MQTT payload");
+   return;
+  }
+
+  if (message->content_length >= MQTT_RX_PARSE_BUF_LEN) {
+  //     LOG_ERROR("MQTT", "MQTT payload too large for parser buffer (%u)", (unsigned int)message->content_length);
+   return;
+  }
+
+  if (mqtt_rx_message_pending) {
      return;
    }
-
-   if (message->content_length >= MQTT_RX_PARSE_BUF_LEN) {
-//     LOG_ERROR("MQTT", "MQTT payload too large for parser buffer (%u)", (unsigned int)message->content_length);
-     return;
-   }
-
-//   char mqtt_json_buf[MQTT_RX_PARSE_BUF_LEN] = {0};
-//   memcpy(mqtt_json_buf, message->content, message->content_length);
-//   mqtt_json_buf[message->content_length] = '\0';
-   if (mqtt_rx_message_pending) {
-       return;
-     }
-
-//   if (!casa_message_parser(mqtt_json_buf, (int)message->content_length)) {
-//     LOG_ERROR("MQTT", "MQTT payload parser failed");
-//   }
    memcpy(mqtt_rx_parse_buf, message->content, message->content_length);
    mqtt_rx_parse_buf[message->content_length] = '\0';
    mqtt_rx_message_len = message->content_length;
@@ -234,22 +226,23 @@ void mqtt_app_close(void)
 {
     sl_status_t status;
     status = sl_mqtt_client_disconnect(&mqtt_client, 5000);
-    if (status == SL_STATUS_OK) {
-        LOG_ERROR("MQTT", "Disconnect failed: 0x%lx", status);
-        sl_mqtt_client_deinit(&mqtt_client); // Important: Frees the hardware socket
-        mqtt_connection_check = false;
-        LOG_INFO("MQTT", "MQTT Session Closed");
+    if ((status != SL_STATUS_OK) && (status != SL_STATUS_NOT_INITIALIZED) && (status != SL_STATUS_IN_PROGRESS)) {
+        LOG_WARN("MQTT", "Disconnect returned status: 0x%lx", status);
     }
-//    if (mqttConnectHandle != NULL) {
-//       status = osThreadTerminate(mqttConnectHandle);
-//
-//      if (status == SL_STATUS_OK) {
-//          LOG_INFO("MQTT", "MQTT Thread deleted successfully.");
-//          mqttConnectHandle = NULL; // Reset handle to prevent double-deletion
-//      } else {
-//          LOG_ERROR("MQTT", "Failed to delete MQTT Thread: %d", status);
-//      }
-//    }
+
+    status = sl_mqtt_client_deinit(&mqtt_client); // Important: Frees the hardware socket
+    if ((status != SL_STATUS_OK) && (status != SL_STATUS_NOT_INITIALIZED)) {
+        LOG_WARN("MQTT", "MQTT deinit returned status: 0x%lx", status);
+    }
+
+    if (client_credentials != NULL) {
+        free(client_credentials);
+        client_credentials = NULL;
+    }
+    mqtt_connection_check = false;
+    mqtt_subscribe_pending = false;
+    casa_ctx.mqtt_ssl_connection = 0;
+    LOG_INFO("MQTT", "MQTT Session Closed");
 }
 
 bool Mqtt_publish(const char *Topic, const char *string)
@@ -295,6 +288,11 @@ bool mqtt_secure_config(bool input)
     LOG_INFO("MQTT", "CA Cert Load: 0x%lx", status);
   }
 
+  if (client_credentials != NULL) {
+      free(client_credentials);
+      client_credentials = NULL;
+  }
+
   uint32_t len = sizeof(sl_mqtt_client_credentials_t) + strlen(USERNAME) + strlen(PASSWORD);
 
   client_credentials = malloc(len);
@@ -312,6 +310,8 @@ bool mqtt_secure_config(bool input)
   status = sl_net_set_credential(SL_NET_MQTT_CLIENT_CREDENTIAL_ID(0), SL_NET_MQTT_CLIENT_CREDENTIAL, client_credentials, len);
   if (status != SL_STATUS_OK) {
     LOG_ERROR("MQTT", "MQTT credentials load failed: 0x%lx", status);
+    free(client_credentials);
+    client_credentials = NULL;
     return false;
   }
 
@@ -374,15 +374,21 @@ bool mqtt_secure_config(bool input)
   memcpy(&mqtt_broker_config.ip.ip.v4.value, &broker_ip.ip.v4.value, 4);
 
   // Init MQTT client
-  sl_mqtt_client_init(&mqtt_client, mqtt_event_handler);
+  status = sl_mqtt_client_init(&mqtt_client, mqtt_event_handler);
+  if ((status != SL_STATUS_OK) && (status != SL_STATUS_ALREADY_EXISTS)) {
+      LOG_ERROR("MQTT", "MQTT init failed: 0x%lx", status);
+      return false;
+  }
 
   // Connect to MQTT broker
-  sl_mqtt_client_connect(&mqtt_client, &mqtt_broker_config, &last_will_message, &mqtt_client_config, 0);
+  status = sl_mqtt_client_connect(&mqtt_client, &mqtt_broker_config, &last_will_message, &mqtt_client_config, 0);
+  if ((status != SL_STATUS_OK) && (status != SL_STATUS_IN_PROGRESS)) {
+      LOG_ERROR("MQTT", "MQTT connect start failed: 0x%lx", status);
+      return false;
+  }
   return true;
 
 }
-
-#define  MQTT_CONN_RETRY_LIMIT           30                         /* MQTT connection retry limit 30 -> 15 sec */
 
 
 bool mqtt_app_start(void)
@@ -454,107 +460,19 @@ void mqtt_reconnection_check(void *arg)
                   mqtt_subscribe_pending = false;
                   LOG_INFO("MQTT", "Subscriptions processed");
               }
-
-              // 3. Periodic Publishing
-//              char message_payload[128];
-//              snprintf(message_payload, sizeof(message_payload), "%s%lu", PUBLISH_MESSAGE_BASE, counter++);
-//             Mqtt_publish(PUBLISH_TOPIC, message_payload);
-
-//              publish_message.qos_level            = QOS_OF_PUBLISH_MESSAGE;
-//              publish_message.is_retained          = IS_MESSAGE_RETAINED;
-//              publish_message.is_duplicate_message = IS_DUPLICATE_MESSAGE;
-//              publish_message.topic                = (uint8_t *)PUBLISH_TOPIC;
-//              publish_message.topic_length         = strlen(PUBLISH_TOPIC);
-//              publish_message.content              = (uint8_t *)message_payload;
-//              publish_message.content_length       = strlen(message_payload);
-//
-//              sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
           }
       }
-
-//      if (slow_loop_timer >= 20) {
-//          printf("mqtt_connection_check : %d, internet_status: %d\r\n",mqtt_connection_check, internet_status);
-//      }
-
-      // Small delay to drive the 50ms timing
       osDelay(50);
       slow_loop_timer++;
   }
 }
 
-//void mqtt_reconnection_check(void *arg)
-//{
-//  (void)arg;
-//  while(true) {
-//      // Continuous publishing loop
-//        uint32_t counter = 0;
-//        sl_mqtt_client_message_t publish_message;
-//        while (1) {
-//            if(mqtt_connection_check == 0 && internet_status == 1) {
-//                mqtt_app_start();
-//            }
-//            if(mqtt_connection_check) {
-//                if (mqtt_rx_message_pending) {
-//                    printf("received JSON : %s\r\n",mqtt_rx_parse_buf);
-//                    if (!casa_message_parser(mqtt_rx_parse_buf, (int)mqtt_rx_message_len)) {
-//                        LOG_ERROR("MQTT", "MQTT payload parser failed");
-//                    }
-//                    mqtt_rx_parse_buf[0] = '\0';
-//                    mqtt_rx_message_len = 0;
-//                    mqtt_rx_message_pending = false;
-//                }
-//
-//                if (mqtt_subscribe_pending) {
-//                  int msg_id = sl_mqtt_client_subscribe(&mqtt_client,
-//                                                        (uint8_t *)TOPIC_TO_BE_SUBSCRIBED,
-//                                                        strlen(TOPIC_TO_BE_SUBSCRIBED),
-//                                                        QOS_OF_SUBSCRIPTION,
-//                                                        0,
-//                                                        mqtt_message_callback,
-//                                                        NULL);
-//                  if (msg_id >= 0) {
-//                    LOG_INFO("MQTT", "Subscribed successfully (msg_id=%d)", msg_id);
-//                    mqtt_subscribe_pending = false;
-//                  } else {
-//                    LOG_WARN("MQTT", "Subscribe request failed (%d), retrying", msg_id);
-//                  }
-//
-//                  msg_id = sl_mqtt_client_subscribe(&mqtt_client,
-//                                                          (uint8_t *)mqtt_sub_topic,
-//                                                          strlen(mqtt_sub_topic),
-//                                                          QOS_OF_SUBSCRIPTION,
-//                                                          0,
-//                                                          mqtt_message_callback,
-//                                                          NULL);
-//                    if (msg_id >= 0) {
-//                      LOG_INFO("MQTT", "Subscribed successfully (msg_id=%d)", msg_id);
-//                      mqtt_subscribe_pending = false;
-//                    } else {
-//                      LOG_WARN("MQTT", "Subscribe request failed (%d), retrying", msg_id);
-//                    }
-//                }
-//              char message_payload[128];
-//              snprintf(message_payload, sizeof(message_payload), "%s%lu", PUBLISH_MESSAGE_BASE, counter++);
-//
-//              publish_message.qos_level            = QOS_OF_PUBLISH_MESSAGE;
-//              publish_message.is_retained          = IS_MESSAGE_RETAINED;
-//              publish_message.is_duplicate_message = IS_DUPLICATE_MESSAGE;
-//              publish_message.topic                = (uint8_t *)PUBLISH_TOPIC;
-//              publish_message.topic_length         = strlen(PUBLISH_TOPIC);
-//              publish_message.content              = (uint8_t *)message_payload;
-//              publish_message.content_length       = strlen(message_payload);
-//
-//              sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
-//            }
-//          osDelay(5000); // publish every 2 seconds
-//        }
-//  }
-//
-//}
-
 void mqtt_connection_task_create(void)
 {
-    mqttConnectHandle = NULL;
+    if (mqttConnectHandle != NULL) {
+        osThreadTerminate(mqttConnectHandle);
+        mqttConnectHandle = NULL;
+    }
     casa_ctx.mqtt_ssl_connection = true;
 
     mqttConnectHandle = osThreadNew(mqtt_reconnection_check, NULL, &mqtt_thread_attributes);

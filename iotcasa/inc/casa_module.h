@@ -16,8 +16,8 @@
 #define MODEL           "ICR2S"
 #define HW_VERSION      1.2             /* Hardware version of CASA module */
 #define HW_BATCH        "09082023"      /* Hardware batch of CASA module */
-#define HOSTNAME_LEN    32
-#define UNIQEID_LEN     16
+#define HOSTNAME_LEN    20
+#define UNIQEID_LEN     10
 #define LOC_LEN         100             /* User Location maximum length */
 #define USRID_LEN       50              /* User ID maximum length */
 #define EVENT_BY_LEN    30              /* length of user name */
