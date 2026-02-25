@@ -31,8 +31,27 @@ typedef struct device_control_context_s {
 } device_control_context_t;
 
 
-
+/**
+ * @brief     Update the button controls status to the CASA cloud when the MQTT
+ *            connection is alive.
+ * @param[in] None
+ * @return    None
+ */
 void casa_device_status_update(void);
+/**
+ * @brief      Device control function responsible for controlling the endpoints
+ *             using the digitalWrite library function based on the updated
+ *             device control structure.
+ * @param[in]  None
+ * @return     None
+ */
+void control_endpoint(void);
+
+/**
+ * @brief     Construct JSON data for controlled end devices to send updates to the cloud.
+ * @param[in] None
+ * @return    None
+ */
 void construct_status_update_json(void);
 
 #endif /* DEVICE_CONTROL_H_ */

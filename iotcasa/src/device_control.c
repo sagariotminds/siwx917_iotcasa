@@ -14,7 +14,7 @@
 static const char *TAG = "Device Control";
 
 extern casa_context_t casa_ctx;
-extern sl_si91x_gpio_pin_config_t led_gpio_cfg[];
+extern sl_si91x_gpio_pin_config_t load_gpio_cfg[];
 extern char mqtt_pub_topic[MQTT_TOPIC_LEN];
 extern time_based_control_t gpio_timer[NO_OF_ENDPOINTS];
 extern bool timer_ctrl_status[NO_OF_ENDPOINTS];
@@ -81,6 +81,19 @@ void casa_device_status_update(void)
     }
 }
 
+void control_endpoint(void)
+{
+    for (int idx = 0; idx < device_control.endpoints_counter; idx++) {
+        if(device_control.endpoint_info[idx].set_value) {
+            sl_gpio_driver_set_pin(&load_gpio_cfg[(device_control.endpoint_info[idx].endpoint )].port_pin);
+        } else {
+            sl_gpio_driver_clear_pin(&load_gpio_cfg[(device_control.endpoint_info[idx].endpoint)].port_pin);
+        }
+    }
+    vTaskDelay(DELAY_50S / portTICK_PERIOD_MS);
+    return;
+}
+
 void construct_status_update_json(void)
 {
    printf("construct_status_update_json\r\n");
@@ -122,12 +135,12 @@ void construct_status_update_json(void)
 
         if(device_control.call_type) {
             sprintf(enpoint, "%s_%d", casa_ctx.uniqueid, idx+1);
-            sl_gpio_driver_get_pin(&led_gpio_cfg[idx+1].port_pin, &gpio_level);
+            sl_gpio_driver_get_pin(&load_gpio_cfg[idx+1].port_pin, &gpio_level);
             cJSON_AddNumberToObject(onOffObject, "value", gpio_level);
         }else {
             sprintf(enpoint, "%s_%d", casa_ctx.uniqueid, device_control.endpoint_info[idx].endpoint);
             //cJSON_AddNumberToObject(onOffObject, "value", device_control.endpoint_info[idx].set_value);
-            sl_gpio_driver_get_pin(&led_gpio_cfg[device_control.endpoint_info[idx].endpoint].port_pin, &gpio_level);
+            sl_gpio_driver_get_pin(&load_gpio_cfg[device_control.endpoint_info[idx].endpoint].port_pin, &gpio_level);
             cJSON_AddNumberToObject(onOffObject, "value", gpio_level);
         }
         cJSON_AddStringToObject(firstObject, "nodeId", enpoint);

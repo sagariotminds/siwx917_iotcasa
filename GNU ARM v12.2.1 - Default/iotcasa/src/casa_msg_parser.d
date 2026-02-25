@@ -39,7 +39,9 @@ iotcasa/src/casa_msg_parser.o: ../iotcasa/src/casa_msg_parser.c \
  C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h \
  C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h \
  C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/de_registration.h \
- C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/device_control.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_log.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_msg_parser.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/iotcasa_types.h:
@@ -81,3 +83,5 @@ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_mod
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/de_registration.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/device_control.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h:

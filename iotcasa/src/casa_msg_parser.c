@@ -9,9 +9,14 @@
 #include "casa_msg_parser.h"
 #include "casa_module.h"
 #include "registration.h"
+#include "device_control.h"
+
+static const char *TAG = "PARSE";
 
 extern casa_context_t casa_ctx;
-
+extern bool mqtt_connection_check;
+extern device_control_context_t device_control;
+extern sl_si91x_gpio_pin_config_t load_gpio_cfg[];
 
 int registration_udp_ble_parser(cJSON *json_parse)
 {
@@ -290,6 +295,105 @@ int cloud_mqtt_dereg_json_parser(cJSON *json_parse)
 }
 
 
+int control_msg_parser(cJSON *json_parse)
+{
+    const char *msgFrom_json = NULL;
+    char devid[ENDPOINT_LEN] = {'\0'};
+    uint16_t node_id = 0;
+
+    memset(&device_control,'\0',sizeof(device_control));
+    device_control.requestId = cJSON_GetObjectItem(json_parse, "reqId")->valuedouble;
+    device_control.isgroup = cJSON_GetObjectItem(json_parse, "isGroup")->valueint;
+    msgFrom_json = cJSON_GetObjectItem(json_parse, "reqFrom")->valuestring;
+
+    if (msgFrom_json == NULL) {
+        LOG_ERROR(TAG, "ReqFrom not found in the json request.");
+//        construct_mqtt_device_log_msg(E_MSG_FROM,L_CONTROL);
+        return FAIL;
+    }
+    strncpy(device_control.msg_from, msgFrom_json, strlen(msgFrom_json));
+
+    cJSON *eBy_json = cJSON_GetObjectItem(json_parse, "eBy");
+    if(eBy_json == NULL) {
+        LOG_ERROR(TAG, "eBy not found in the json request.");
+//        construct_mqtt_device_log_msg(E_EBY,L_CONTROL);
+        return FAIL;
+    }
+    memset(casa_ctx.event_by, '\0', EVENT_BY_LEN);
+    strncpy(casa_ctx.event_by, eBy_json->valuestring, strlen(eBy_json->valuestring));
+
+    cJSON *eById_json = cJSON_GetObjectItem(json_parse, "eById");
+    if (eById_json == NULL) {
+        LOG_ERROR(TAG, "eById not found in the json request.");
+//        construct_mqtt_device_log_msg(E_EBY_ID,L_CONTROL);
+        return FAIL;
+    }
+    memset(casa_ctx.event_by_id, '\0', USRID_LEN);
+    strncpy(casa_ctx.event_by_id, eById_json->valuestring, strlen(eById_json->valuestring));
+
+    cJSON *deviceid_json = cJSON_GetObjectItem(json_parse, "dId");
+    if (deviceid_json == NULL) {
+        LOG_ERROR(TAG, "device id not found in the json request.");
+//        construct_mqtt_device_log_msg(E_DEVICE_ID,L_CONTROL);
+        return FAIL;
+    }
+    strncpy(devid, deviceid_json->valuestring, strlen(deviceid_json->valuestring));
+    if(strncmp(devid,casa_ctx.uniqueid, strlen(casa_ctx.uniqueid))) {
+        LOG_ERROR(TAG, "device id is not matched.");
+//        construct_mqtt_device_log_msg(E_DID_NOT_MATCH,L_CONTROL);
+        return FAIL;
+    }
+    device_control.endpoints_counter = 0;
+
+    cJSON *data = cJSON_GetObjectItemCaseSensitive(json_parse, "data");
+
+    if (cJSON_IsArray(data)) {
+        int data_array_size = cJSON_GetArraySize(data);
+        for(int i = 0; i < data_array_size; i++) {
+            cJSON *dataElement = cJSON_GetArrayItem(data, i);
+            cJSON *nId = cJSON_GetObjectItemCaseSensitive(dataElement, "nId");
+            cJSON *traits = cJSON_GetObjectItemCaseSensitive(dataElement, "traits");
+            cJSON *onOff = cJSON_GetObjectItemCaseSensitive(traits, "OnOff");
+            cJSON *value = cJSON_GetObjectItemCaseSensitive(onOff, "value");
+
+            node_id = nId->valueint;
+
+            uint8_t gpio_level = 0;
+            sl_gpio_driver_get_pin(&load_gpio_cfg[node_id].port_pin, &gpio_level);
+
+            if (gpio_level == value->valueint && mqtt_connection_check == true)
+                continue;
+
+//            if(gpio_timer[node_id - 1].active == true)
+//            {
+//                ESP_LOGW(TAG, "timer based control on node %d timer deleted due to control.",node_id);
+//                gpio_timer[node_id - 1].active = false;
+//                gpio_timer[node_id - 1].start_time = 0;
+//                gpio_timer[node_id - 1].duration_ticks = 0;
+//                set_timer_control(node_id,0);
+//                send_timer_resp(device_control.requestId,2, node_id,1);
+//            }
+
+            device_control.endpoint_info[device_control.endpoints_counter].endpoint = nId->valueint;
+            if (device_control.endpoint_info[device_control.endpoints_counter].endpoint < 1 ||
+                device_control.endpoint_info[device_control.endpoints_counter].endpoint > NO_OF_ENDPOINTS ) {
+                LOG_ERROR(TAG, "End point is not in our limit.");
+//                construct_mqtt_device_log_msg(E_LOAD_LIMIT,L_CONTROL);
+                return FAIL;
+            }
+
+            device_control.endpoint_info[device_control.endpoints_counter].set_value =  value->valueint;
+            device_control.endpoints_counter++;
+        }
+    }
+    if(!device_control.endpoints_counter) {
+        LOG_ERROR(TAG, "Empty data to control");
+//        construct_mqtt_device_log_msg(E_STATUS_MATCH,L_CONTROL);
+        return FAIL;
+    }
+    return PARSE_SUCCESS;
+}
+
 
 int casa_message_parser(char *casa_req, int Req_length)
 {
@@ -361,6 +465,19 @@ int casa_message_parser(char *casa_req, int Req_length)
                   cJSON_Delete(root);
               }
               if (ret_val) {
+                  return PARSE_SUCCESS;
+              } else {
+                  return FAIL;
+              }
+              break;
+          }
+          case CONTROL_MSG:
+          {
+              ret_val = control_msg_parser(root);
+              cJSON_Delete(root);
+              if (ret_val) {
+                  control_endpoint();
+                  casa_device_status_update();
                   return PARSE_SUCCESS;
               } else {
                   return FAIL;

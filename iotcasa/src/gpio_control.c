@@ -62,7 +62,7 @@ sl_si91x_gpio_pin_config_t btn_gpio_cfg[] = {
   { {0, 11}, GPIO_INPUT }   // [2] BUTTON1 (B4)
 };
 
-sl_si91x_gpio_pin_config_t led_gpio_cfg[] = {
+sl_si91x_gpio_pin_config_t load_gpio_cfg[] = {
   { {0, 9},  GPIO_OUTPUT },  // [0] INDICATER LED
   { {4, 2},  GPIO_OUTPUT },  // [1] LED0
   { {0, 10}, GPIO_OUTPUT }   // [2] LED1
@@ -75,8 +75,8 @@ void manual_switch_handling(uint8_t index)
     uint8_t gpio_level = 0;
 
     // Toggle logic for Si917
-    sl_gpio_driver_toggle_pin(&led_gpio_cfg[index].port_pin);
-    sl_gpio_driver_get_pin(&led_gpio_cfg[index].port_pin, &gpio_level);
+    sl_gpio_driver_toggle_pin(&load_gpio_cfg[index].port_pin);
+    sl_gpio_driver_get_pin(&load_gpio_cfg[index].port_pin, &gpio_level);
     // Populate device control for status update
     memset(&device_control, 0, sizeof(device_control));
     device_control.endpoints_counter = 1;
@@ -108,10 +108,10 @@ void reg_dereg_button(void)
 static void led_blink_sequence(uint8_t index)
 {
   for (uint8_t i = 0; i < 10; i++) {
-    sl_gpio_driver_toggle_pin(&led_gpio_cfg[index].port_pin);
+    sl_gpio_driver_toggle_pin(&load_gpio_cfg[index].port_pin);
     osDelay(200);
   }
-  sl_gpio_driver_clear_pin(&led_gpio_cfg[index].port_pin);
+  sl_gpio_driver_clear_pin(&load_gpio_cfg[index].port_pin);
 }
 
 /* ================== BUTTON HANDLER ================== */
@@ -133,7 +133,7 @@ void push_button(uint8_t index)
   /* -------- RELEASE DETECT -------- */
   else if (gpio_level == 1 && !btn_edge_flag[index]) {
     btn_release_time_ms[index] = osKernelGetTickCount();
-    sl_gpio_driver_toggle_pin(&led_gpio_cfg[index].port_pin);
+    sl_gpio_driver_toggle_pin(&load_gpio_cfg[index].port_pin);
     btn_edge_flag[index] = 1;
     btn_released_event[index] = 1;
     btn_long_press_active[index] = 0;
@@ -155,7 +155,7 @@ void push_button(uint8_t index)
 
     btn_click_count[index]++;
     btn_released_event[index] = 0;
-    sl_gpio_driver_toggle_pin(&led_gpio_cfg[index].port_pin);
+    sl_gpio_driver_toggle_pin(&load_gpio_cfg[index].port_pin);
     manual_switch_handling(index);
 
     LOG_INFO(TAG, "BTN %d CLICK COUNT = %d", index, btn_click_count[index]);
@@ -257,9 +257,9 @@ void gpio_init(void)
 
   for (uint8_t i = 0; i <= NO_OF_ENDPOINTS; i++) {
     sl_gpio_set_configuration(btn_gpio_cfg[i]);
-    sl_gpio_set_configuration(led_gpio_cfg[i]);
-    sl_gpio_driver_clear_pin(&led_gpio_cfg[i].port_pin);
+    sl_gpio_set_configuration(load_gpio_cfg[i]);
+    sl_gpio_driver_clear_pin(&load_gpio_cfg[i].port_pin);
   }
   osThreadNew((osThreadFunc_t)switches_handling_task, NULL, NULL);
-  sl_gpio_driver_clear_pin(&led_gpio_cfg[0].port_pin);
+  sl_gpio_driver_clear_pin(&load_gpio_cfg[0].port_pin);
 }

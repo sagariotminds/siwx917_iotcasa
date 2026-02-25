@@ -23,7 +23,7 @@
 
 extern float fw_version;
 extern casa_context_t casa_ctx;
-extern sl_si91x_gpio_pin_config_t led_gpio_cfg[];
+extern sl_si91x_gpio_pin_config_t load_gpio_cfg[];
 extern device_control_context_t device_control;
 
 uint32_t persistent_counter = 0;
@@ -191,9 +191,9 @@ void get_eeprom_device_state_info(void)
 
         // If data exists, apply to GPIO; otherwise, default to OFF (0)
         if (status == SL_STATUS_OK && saved_val == 1) {
-            sl_gpio_driver_set_pin(&led_gpio_cfg[i].port_pin); // ON
+            sl_gpio_driver_set_pin(&load_gpio_cfg[i].port_pin); // ON
         } else {
-            sl_gpio_driver_clear_pin(&led_gpio_cfg[i].port_pin); // OFF
+            sl_gpio_driver_clear_pin(&load_gpio_cfg[i].port_pin); // OFF
         }
 
         LOG_INFO("NVM", "Execution: SUCCESS - Restored Index %d to %s", i, (saved_val == 1) ? "ON" : "OFF");

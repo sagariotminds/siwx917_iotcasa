@@ -32,7 +32,7 @@ extern casa_wifi_status_t casa_wifi_status;
 extern bool device_status_report;
 
 extern casa_context_t casa_ctx;
-extern sl_si91x_gpio_pin_config_t led_gpio_cfg[];
+extern sl_si91x_gpio_pin_config_t load_gpio_cfg[];
 
 // --- Global Variables ---
 static sl_sleeptimer_timer_handle_t registration_periodic_timer;
@@ -51,7 +51,7 @@ void register_data_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
       casa_ctx.reg_dereg_flag = false;
   }
 
-  sl_gpio_driver_toggle_pin(&led_gpio_cfg[0].port_pin);
+  sl_gpio_driver_toggle_pin(&load_gpio_cfg[0].port_pin);
 //  UDP_receive_callback();
 
   if (casa_ctx.registration->buffer_status == true) {
@@ -414,7 +414,7 @@ void discovery_device_details_json(void)
     cJSON *nodes = cJSON_CreateArray();
     for(int idx = 1; idx <= NO_OF_ENDPOINTS; idx++) {
 //        live_status = gpio_get_level(gpio_loads[idx-1]);
-        sl_gpio_driver_get_pin(&led_gpio_cfg[idx].port_pin, &gpio_level);
+        sl_gpio_driver_get_pin(&load_gpio_cfg[idx].port_pin, &gpio_level);
         snprintf(nodeid, ENDPOINT_LEN, "%s_%d", casa_ctx.uniqueid, idx);
         cJSON *node = cJSON_CreateObject();
         cJSON_AddStringToObject(node, "nodeId", nodeid);
