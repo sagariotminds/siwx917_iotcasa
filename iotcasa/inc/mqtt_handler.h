@@ -69,5 +69,6 @@ void construct_mqtt_lastwill_msg(int status_dev, char json[DEVICE_STATUS_JSON_LE
 
 void unsecure_fota_check(void);
 void send_timer_resp(long long requestid, int type, int node, int status);
+void log_mem_snapshot(const char *phase);
 
 #endif /* MQTT_HEADLER_H_ */

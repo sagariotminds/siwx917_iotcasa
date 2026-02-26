@@ -45,13 +45,13 @@ float fw_version = 3.7;
 void register_data_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
 {
   (void)data, (void)handle;
-  LOG_INFO("REG", "Waiting for registration request from mobile app: %ld\r\n", casa_ctx.registration->time_out);
+  LOG_INFO("REG", "Waiting for registration request from mobile app: %ld", casa_ctx.registration->time_out);
   if (casa_ctx.registration->time_out == SWITCH_ENABLE_TIME) {
       casa_ctx.switch_interrupts = ENABLE;
       casa_ctx.reg_dereg_flag = false;
   }
 
-  sl_gpio_driver_toggle_pin(&load_gpio_cfg[0].port_pin);
+  sl_gpio_driver_toggle_pin(&load_gpio_cfg[1].port_pin);
 //  UDP_receive_callback();
 
   if (casa_ctx.registration->buffer_status == true) {

@@ -476,8 +476,8 @@ int casa_message_parser(char *casa_req, int Req_length)
               ret_val = control_msg_parser(root);
               cJSON_Delete(root);
               if (ret_val) {
-                  control_endpoint();
-                  casa_device_status_update();
+//                  control_endpoint();
+//                  casa_device_status_update();
                   return PARSE_SUCCESS;
               } else {
                   return FAIL;

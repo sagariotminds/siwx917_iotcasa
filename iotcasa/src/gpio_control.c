@@ -105,14 +105,14 @@ void reg_dereg_button(void)
     }
 }
 
-static void led_blink_sequence(uint8_t index)
-{
-  for (uint8_t i = 0; i < 10; i++) {
-    sl_gpio_driver_toggle_pin(&load_gpio_cfg[index].port_pin);
-    osDelay(200);
-  }
-  sl_gpio_driver_clear_pin(&load_gpio_cfg[index].port_pin);
-}
+//static void led_blink_sequence(uint8_t index)
+//{
+//  for (uint8_t i = 0; i < 10; i++) {
+//    sl_gpio_driver_toggle_pin(&load_gpio_cfg[index].port_pin);
+//    osDelay(200);
+//  }
+//  sl_gpio_driver_clear_pin(&load_gpio_cfg[index].port_pin);
+//}
 
 /* ================== BUTTON HANDLER ================== */
 
@@ -194,7 +194,7 @@ void push_button(uint8_t index)
         (btn_click_count[index] == MULTI_CLICK_REQUIRED)) {
 
       LOG_INFO("GPIO", "BTN %d MULTI CLICK SUCCESS", index);
-      led_blink_sequence(index);
+      reg_dereg_button();
 
       btn_click_count[index] = 0;
       btn_window_active[index] = false;

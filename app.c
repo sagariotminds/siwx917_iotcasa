@@ -121,6 +121,7 @@ void app_init(void)
 {
   LOG_INFO("APP", "========== app_init started ==========");
 
+  log_mem_snapshot("app init - before start");
   /* Print memory snapshot at startup */
   print_overall_app_memory("STARTUP");
   casa_ctx.current_operation = CASA_IDLE;

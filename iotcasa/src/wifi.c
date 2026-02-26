@@ -175,6 +175,7 @@ void stop_wifi_client(void)
 
 static bool check_internet_connectivity(void)
 {
+  log_mem_snapshot("check_internet_connectivity start");
   int sock;
   struct sockaddr_in server_addr;
   struct timeval timeout;
@@ -209,18 +210,20 @@ static bool check_internet_connectivity(void)
               sizeof(server_addr)) == 0) {
 
 //    LOG_INFO("WIFI", "Internet AVAILABLE");
+      log_mem_snapshot("check_internet_connectivity end");
     close(sock);
     return true;
   }
 //  LOG_WARN("WIFI", "Internet NOT available");
   close(sock);
+  log_mem_snapshot("check_internet_connectivity end");
   return false;
 }
 
 bool wifi_sta(const char *ssid, const char *password)
 {
 
-  printf("ssid %s, password %s\r\n",ssid,password);
+  log_mem_snapshot("WIFI start - entry");
   if (ssid == NULL || password == NULL) {
       return false;
   }
@@ -263,6 +266,8 @@ bool wifi_sta(const char *ssid, const char *password)
       LOG_ERROR("WIFI", "Init failed: 0x%lx", status);
       return false;
   }
+
+  log_mem_snapshot("WIFI start - after client init");
 
   // MAC Print
   if (sl_wifi_get_mac_address(SL_WIFI_CLIENT_INTERFACE, &mac_addr) == SL_STATUS_OK) {
@@ -325,6 +330,7 @@ bool wifi_sta(const char *ssid, const char *password)
         if (casa_wifi_status.is_connected) {
               LOG_INFO("WIFI", "Connected Successfully!");
               is_wifi_connected = true;
+              log_mem_snapshot("WIFI start - connected");
               return true;
         }
 
@@ -377,9 +383,7 @@ void station_wifi_status_clear(void) {
 void wifi_sta_monitor_task(void *argument)
 {
   UNUSED_PARAMETER(argument);
-
-  printf("thread is created wifi\r\n");
-//  int mqtt_started = 1;
+  log_mem_snapshot("WIFI monitor - thread start");
 
   while (1) {
       int32_t rssi = 0;
@@ -417,7 +421,7 @@ void wifi_sta_monitor_task(void *argument)
               LOG_ERROR("WIFI", "No Internet ❌");
               internet_status = 0;
           }
-          osDelay(5000);
+          osDelay(30000);
        }
       else {
           // Connection lost
@@ -441,14 +445,17 @@ void wifi_sta_monitor_task(void *argument)
 
           // Step C: Attempt Rejoin
           LOG_INFO("WIFI", "Attempting Rejoin to: %s", casa_sta_profile.config.ssid.value);
+          log_mem_snapshot("WIFI reconnect - before sl_net_up");
           sl_status_t join_status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, CASA_WIFI_PROFILE_ID);
 
           if (join_status == SL_STATUS_OK) {
             LOG_INFO("WIFI", "Join Success. Waiting for DHCP...");
+            log_mem_snapshot("WIFI reconnect - join success");
             osDelay(5000);
           } else {
             // If you get 0x21 here, it means my_sta_config_variable is empty or credential was lost
             LOG_ERROR("WIFI", "Join failed (0x%lx). Retrying in 5s...", join_status);
+            log_mem_snapshot("WIFI reconnect - join failed");
             osDelay(5000);
           }
       }

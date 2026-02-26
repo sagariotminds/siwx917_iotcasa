@@ -62,7 +62,15 @@ iotcasa/src/mqtt_handler.o: ../iotcasa/src/mqtt_handler.c \
  C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h \
  C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h \
  C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/de_registration.h \
- C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_msg_parser.h
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_msg_parser.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\freertos.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\projdefs.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\portable.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\deprecated_definitions.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\portable\gcc\arm_cm4f\portmacro.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\mpu_wrappers.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\task.h \
+ c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\list.h
 c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\common\inc\sl_constants.h:
 c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\common\inc\sl_additional_status.h:
 c:\users\user\simplicitystudio\sdks\simplicity_sdk\extension\wiseconnect\components\service\mqtt\inc\sl_mqtt_client.h:
@@ -127,3 +135,11 @@ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_mod
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/de_registration.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_msg_parser.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\freertos.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\projdefs.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\portable.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\deprecated_definitions.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\portable\gcc\arm_cm4f\portmacro.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\mpu_wrappers.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\task.h:
+c:\users\user\simplicitystudio\sdks\simplicity_sdk\util\third_party\freertos\kernel\include\list.h:

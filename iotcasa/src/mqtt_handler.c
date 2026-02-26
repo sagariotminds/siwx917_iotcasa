@@ -48,7 +48,7 @@ static const char *TAG = "MQTTS";
 #define MQTT_CONNECT_TIMEOUT   5000
 #define MQTT_KEEPALIVE_RETRIES 3
 #define MQTT_RX_PARSE_BUF_LEN  1024
-#define MQTT_RX_QUEUE_DEPTH    8
+#define MQTT_RX_QUEUE_DEPTH    32
 
 #define USERNAME "ihkkclcq:ihkkclcq"
 #define PASSWORD "iE6uMQPeFgvHDic4kJpEoyboCsPDr1rs"
@@ -139,29 +139,53 @@ const osThreadAttr_t mqtt_thread_attributes = {
 /******************************************************
  *               MQTT MESSAGE CALLBACK
  ******************************************************/
+
+#include "FreeRTOS.h"
+#include "task.h"
+
+void log_mem_snapshot(const char *phase)
+{
+  size_t free_heap = xPortGetFreeHeapSize();
+  size_t min_ever_heap = xPortGetMinimumEverFreeHeapSize();
+  UBaseType_t stack_hwm_words = uxTaskGetStackHighWaterMark(NULL);
+
+  LOG_INFO("MEM", "%s | Heap Free: %lu B | Heap MinEver: %lu B | Stack HWM: %lu words (%lu B)",
+           phase,
+           (unsigned long)free_heap,
+           (unsigned long)min_ever_heap,
+           (unsigned long)stack_hwm_words,
+           (unsigned long)(stack_hwm_words * sizeof(StackType_t)));
+}
+
+int count  = 1;
 void mqtt_message_callback(void *client, sl_mqtt_client_message_t *message, void *context)
 {
   UNUSED_PARAMETER(client);
   UNUSED_PARAMETER(context);
-  if ((message == NULL) || (message->content == NULL) || (message->content_length == 0)) {
-        return;
-    }
 
-    if (mqtt_rx_count >= MQTT_RX_QUEUE_DEPTH) {
-        mqtt_rx_drop_count++;
-        return;
-    }
+  printf("count %d received JSON : %s\r\n", count, message->content);
+  count ++;
+//  if(casa_ctx.reg_status != REGISTRATION_DONE) {
+      if ((message == NULL) || (message->content == NULL) || (message->content_length == 0)) {
+                return;
+            }
 
-    uint16_t copy_len = (message->content_length < (MQTT_RX_PARSE_BUF_LEN - 1)) ?
-                        (uint16_t)message->content_length :
-                        (MQTT_RX_PARSE_BUF_LEN - 1);
+            if (mqtt_rx_count >= MQTT_RX_QUEUE_DEPTH) {
+                mqtt_rx_drop_count++;
+                return;
+            }
 
-    memcpy(mqtt_rx_parse_queue[mqtt_rx_head], message->content, copy_len);
-    mqtt_rx_parse_queue[mqtt_rx_head][copy_len] = '\0';
-    mqtt_rx_len_queue[mqtt_rx_head] = copy_len;
+            uint16_t copy_len = (message->content_length < (MQTT_RX_PARSE_BUF_LEN - 1)) ?
+                                (uint16_t)message->content_length :
+                                (MQTT_RX_PARSE_BUF_LEN - 1);
 
-    mqtt_rx_head = (mqtt_rx_head + 1) % MQTT_RX_QUEUE_DEPTH;
-    mqtt_rx_count++;
+            memcpy(mqtt_rx_parse_queue[mqtt_rx_head], message->content, copy_len);
+            mqtt_rx_parse_queue[mqtt_rx_head][copy_len] = '\0';
+            mqtt_rx_len_queue[mqtt_rx_head] = copy_len;
+
+            mqtt_rx_head = (mqtt_rx_head + 1) % MQTT_RX_QUEUE_DEPTH;
+            mqtt_rx_count++;
+//  }
 
 }
 
@@ -210,6 +234,7 @@ void mqtt_event_handler(void *client, sl_mqtt_client_event_t event, void *event_
 void mqtt_app_close(void)
 {
     sl_status_t status;
+    log_mem_snapshot("MQTT close - before disconnect/deinit");
     status = sl_mqtt_client_disconnect(&mqtt_client, 5000);
     if ((status != SL_STATUS_OK) && (status != SL_STATUS_NOT_INITIALIZED) && (status != SL_STATUS_IN_PROGRESS)) {
         LOG_WARN("MQTT", "Disconnect returned status: 0x%lx", status);
@@ -230,6 +255,7 @@ void mqtt_app_close(void)
     mqtt_rx_count = 0;
     casa_ctx.mqtt_ssl_connection = 0;
     LOG_INFO("MQTT", "MQTT Session Closed");
+    log_mem_snapshot("MQTT close - after disconnect/deinit");
 }
 
 bool Mqtt_publish(const char *Topic, const char *string)
@@ -256,6 +282,7 @@ bool Mqtt_publish(const char *Topic, const char *string)
 
 bool mqtt_secure_config(bool input)
 {
+  log_mem_snapshot("MQTT secure_config - begin");
   mqtt_app_close();
 
   sl_status_t status;
@@ -368,6 +395,7 @@ bool mqtt_secure_config(bool input)
       LOG_ERROR("MQTT", "MQTT connect start failed: 0x%lx", status);
       return false;
   }
+  log_mem_snapshot("MQTT secure_config - connect initiated");
   return true;
 
 }
@@ -375,6 +403,7 @@ bool mqtt_secure_config(bool input)
 
 bool mqtt_app_start(void)
 {
+  log_mem_snapshot("MQTT start - before secure_config");
   if (!mqtt_secure_config(true)) {
       return false;
   }
@@ -384,6 +413,7 @@ bool mqtt_app_start(void)
           LOG_INFO("MQTT", "MQTT Connected");
           sl_mqtt_client_subscribe(&mqtt_client, (uint8_t *)mqtt_sub_topic, strlen(mqtt_sub_topic), QOS_OF_SUBSCRIPTION, 0, mqtt_message_callback, NULL);
           LOG_INFO("MQTT", "Subscriptions processed");
+          log_mem_snapshot("MQTT start - connected and subscribed");
           return true;
       } else {
           LOG_INFO("MQTT", "MQTT Trying to connect...");
@@ -407,6 +437,7 @@ void mqtt_reconnection_check(void *arg)
 
       // Handle Incoming Messages immediately
       if(mqtt_connection_check && (mqtt_rx_count > 0)) {
+          log_mem_snapshot("MQTT JSON - start");
           printf("received JSON : %s\r\n", mqtt_rx_parse_queue[mqtt_rx_tail]);
           if (!casa_message_parser(mqtt_rx_parse_queue[mqtt_rx_tail], (int)mqtt_rx_len_queue[mqtt_rx_tail])) {
               LOG_ERROR("MQTT", "MQTT payload parser failed");
@@ -415,6 +446,7 @@ void mqtt_reconnection_check(void *arg)
           mqtt_rx_len_queue[mqtt_rx_tail] = 0;
           mqtt_rx_tail = (mqtt_rx_tail + 1) % MQTT_RX_QUEUE_DEPTH;
           mqtt_rx_count--;
+          log_mem_snapshot("MQTT JSON - end");
       }
 
       if (mqtt_rx_drop_count > 0) {
@@ -424,15 +456,18 @@ void mqtt_reconnection_check(void *arg)
 
       // --- SECTION 2: SLOW LOGIC (Executes every 5000ms) ---
 
-      if (slow_loop_timer >= 500) { // 500 iterations * 10ms = 5000ms
+      if (slow_loop_timer >= 5000) { // 500 iterations * 10ms = 5000ms
           slow_loop_timer = 0; // Reset the 5s timer
 
           // 1. Connection Management
           if(mqtt_connection_check == 0 && internet_status == 1) {
+              LOG_WARN("MQTT", "Reconnect triggered (internet up, mqtt disconnected)");
+              log_mem_snapshot("MQTT reconnect - before start");
               mqtt_app_start();
+              log_mem_snapshot("MQTT reconnect - after start");
           }
       }
-      osDelay(10);
+      osDelay(1);
       slow_loop_timer++;
   }
 }
