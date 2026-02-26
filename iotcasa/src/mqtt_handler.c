@@ -46,7 +46,7 @@ static const char *TAG = "MQTTS";
 #define MQTT_CONN_RETRY_LIMIT  30                         /* MQTT connection retry limit 30 -> 15 sec */
 #define KEEP_ALIVE_INTERVAL    60
 #define MQTT_CONNECT_TIMEOUT   5000
-#define MQTT_KEEPALIVE_RETRIES 3
+#define MQTT_KEEPALIVE_RETRIES 1
 #define MQTT_RX_PARSE_BUF_LEN  2048
 
 #define USERNAME "ihkkclcq:ihkkclcq"
@@ -152,8 +152,7 @@ void mqtt_message_callback(void *client, sl_mqtt_client_message_t *message, void
  *               MQTT EVENT HANDLER
  ******************************************************/
 
-void mqtt_event_handler(void *client, sl_mqtt_client_event_t event,
-                        void *event_data, void *context)
+void mqtt_event_handler(void *client, sl_mqtt_client_event_t event, void *event_data, void *context)
 {
   UNUSED_PARAMETER(event_data);
   UNUSED_PARAMETER(context);
@@ -161,32 +160,24 @@ void mqtt_event_handler(void *client, sl_mqtt_client_event_t event,
 
   switch (event) {
     case SL_MQTT_CLIENT_CONNECTED_EVENT:
-//      LOG_INFO("MQTT", "MQTT event Connected");
       mqtt_connection_check = 1;
       mqtt_subscribe_pending = true;
       casa_ctx.mqtt_ssl_connection = 1;
-
-      // Subscribe with callback
-//      sl_mqtt_client_subscribe(client, (uint8_t *)mqtt_sub_topic, strlen(mqtt_sub_topic), QOS_OF_SUBSCRIPTION, 0, mqtt_message_callback, NULL);
       break;
 
     case SL_MQTT_CLIENT_MESSAGE_PUBLISHED_EVENT:
-//      LOG_INFO("MQTT", "Message Published");
       break;
 
     case SL_MQTT_CLIENT_SUBSCRIBED_EVENT:
-//      LOG_INFO("MQTT", "Subscribed successfully");
       break;
 
     case SL_MQTT_CLIENT_DISCONNECTED_EVENT:
-//      LOG_INFO("MQTT", "MQTT Disconnected");
       mqtt_connection_check = 0;
       mqtt_subscribe_pending = false;
       casa_ctx.mqtt_ssl_connection = 0;
       break;
 
     case SL_MQTT_CLIENT_ERROR_EVENT:
-//      LOG_ERROR("MQTT", "MQTT Error");
       mqtt_connection_check = 0;
       mqtt_subscribe_pending = false;
       casa_ctx.mqtt_ssl_connection = 0;
@@ -242,12 +233,7 @@ bool Mqtt_publish(const char *Topic, const char *string)
   publish_message.content              = (uint8_t *)string;
   publish_message.content_length       = (uint32_t)strlen(string);
 
-//  return sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
-  sl_status_t status = sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
-  if (status != SL_STATUS_OK) {
-      LOG_WARN("MQTT", "Publish failed: 0x%lx", status);
-      return false;
-  }
+  sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
 
   return true;
 }
@@ -297,8 +283,8 @@ bool mqtt_secure_config(bool input)
 
   mqtt_client_config.credential_id               = SL_NET_MQTT_CLIENT_CREDENTIAL_ID(0);
   mqtt_client_config.is_clean_session            = IS_CLEAN_SESSION;
-  mqtt_client_config.client_id                   = (uint8_t *)CLIENT_ID;
-  mqtt_client_config.client_id_length            = strlen(CLIENT_ID);
+  mqtt_client_config.client_id                   = (uint8_t *)casa_ctx.uniqueid;
+  mqtt_client_config.client_id_length            = strlen(casa_ctx.uniqueid);
   mqtt_client_config.client_port                 = CLIENT_PORT;
   mqtt_client_config.tls_flags                   = 0;
   mqtt_broker_config.port                        = 1883;
@@ -374,8 +360,7 @@ bool mqtt_secure_config(bool input)
 bool mqtt_app_start(void)
 {
   if (!mqtt_secure_config(true)) {
-      printf("mqtt_secure_config()\r\n");
-          return false;
+      return false;
   }
   int retry_count = 0;
   while (retry_count < MQTT_CONN_RETRY_LIMIT) {
@@ -427,11 +412,6 @@ void mqtt_reconnection_check(void *arg)
           if(mqtt_connection_check) {
               // 2. Handle Subscriptions
               if (mqtt_subscribe_pending) {
-                  // Static topic subscription
-                  sl_mqtt_client_subscribe(&mqtt_client, (uint8_t *)TOPIC_TO_BE_SUBSCRIBED,
-                                          strlen(TOPIC_TO_BE_SUBSCRIBED), QOS_OF_SUBSCRIPTION,
-                                          0, mqtt_message_callback, NULL);
-
                   // Dynamic topic subscription
                   sl_mqtt_client_subscribe(&mqtt_client, (uint8_t *)mqtt_sub_topic,
                                           strlen(mqtt_sub_topic), QOS_OF_SUBSCRIPTION,

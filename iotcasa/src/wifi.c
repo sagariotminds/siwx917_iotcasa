@@ -37,7 +37,10 @@
 #define PING_SIZE         64
 #define PING_TIMEOUT_MS   2000
 
-#define CASA_WIFI_PROFILE_ID SL_NET_DEFAULT_WIFI_CLIENT_PROFILE_ID
+#define CASA_WIFI_PROFILE_ID SL_NET_PROFILE_ID_1
+
+
+sl_net_wifi_client_profile_t casa_sta_profile;
 
 static volatile bool is_wifi_connected = false;
 casa_wifi_status_t casa_wifi_status = {0};
@@ -213,8 +216,6 @@ static bool check_internet_connectivity(void)
   close(sock);
   return false;
 }
-
-sl_net_wifi_client_profile_t casa_sta_profile;
 
 bool wifi_sta(const char *ssid, const char *password)
 {

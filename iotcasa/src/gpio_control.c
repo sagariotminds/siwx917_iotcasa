@@ -173,7 +173,7 @@ void push_button(uint8_t index)
   else if ((time_current - btn_press_time_ms[index] > MULTI_CLICK_WINDOW_MS) && btn_long_press_active[index]) {
 
     LOG_WARN("GPIO", "BTN %d LONG PRESS", index);
-    led_blink_sequence(index);
+    reg_dereg_button();
 
     while (1) {
       sl_gpio_driver_get_pin(&btn_gpio_cfg[index].port_pin, &gpio_level);
