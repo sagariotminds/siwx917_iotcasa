@@ -456,7 +456,7 @@ void mqtt_reconnection_check(void *arg)
 
       // --- SECTION 2: SLOW LOGIC (Executes every 5000ms) ---
 
-      if (slow_loop_timer >= 5000) { // 500 iterations * 10ms = 5000ms
+      if (slow_loop_timer >= 500) { // 500 iterations * 10ms = 5000ms
           slow_loop_timer = 0; // Reset the 5s timer
 
           // 1. Connection Management
@@ -467,7 +467,7 @@ void mqtt_reconnection_check(void *arg)
               log_mem_snapshot("MQTT reconnect - after start");
           }
       }
-      osDelay(1);
+      osDelay(10);
       slow_loop_timer++;
   }
 }

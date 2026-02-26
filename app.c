@@ -32,6 +32,7 @@
 #include "de_registration.h"
 #include "eeprom_manage.h"
 #include "mqtt_handler.h"
+#include "device_control.h"
 
 
 extern casa_context_t casa_ctx;
@@ -92,6 +93,7 @@ void casa_app_process_action(void *argument)
             }
             case STATUS_UPDATE:
             {
+                casa_device_status_update();
                 break;
             }
             case FOTA_UPDATE:
@@ -111,7 +113,7 @@ void casa_app_process_action(void *argument)
                 break;
             }
         }
-        osDelay(100);    /* Delay the main Loop execution for 50 milliseconds */
+        osDelay(10);    /* Delay the main Loop execution for 50 milliseconds */
   }
 
 }
