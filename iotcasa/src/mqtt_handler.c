@@ -46,8 +46,9 @@ static const char *TAG = "MQTTS";
 #define MQTT_CONN_RETRY_LIMIT  30                         /* MQTT connection retry limit 30 -> 15 sec */
 #define KEEP_ALIVE_INTERVAL    60
 #define MQTT_CONNECT_TIMEOUT   5000
-#define MQTT_KEEPALIVE_RETRIES 1
-#define MQTT_RX_PARSE_BUF_LEN  2048
+#define MQTT_KEEPALIVE_RETRIES 3
+#define MQTT_RX_PARSE_BUF_LEN  1024
+#define MQTT_RX_QUEUE_DEPTH    8
 
 #define USERNAME "ihkkclcq:ihkkclcq"
 #define PASSWORD "iE6uMQPeFgvHDic4kJpEoyboCsPDr1rs"
@@ -72,12 +73,13 @@ char lastwill_buf[DEVICE_STATUS_JSON_LEN] = {'\0'};                             
 char fota_tls_topic_pub[MQTT_TOPIC_LEN] = {'\0'};                                      /* Fota MQTT publish topic data buffer */
 char fota_tls_topic_sub[MQTT_TOPIC_LEN] = {'\0'};                                      /* Fota MQTT subscibe topic data buffer */
 
-/* MQTT callbacks may run in Si91x async RX context; defer heavy work to app task. */
-static volatile bool mqtt_subscribe_pending = false;
 
-static volatile bool mqtt_rx_message_pending = false;
-static volatile uint16_t mqtt_rx_message_len = 0;
-static char mqtt_rx_parse_buf[MQTT_RX_PARSE_BUF_LEN] = {0};
+static char mqtt_rx_parse_queue[MQTT_RX_QUEUE_DEPTH][MQTT_RX_PARSE_BUF_LEN] = {0};
+static uint16_t mqtt_rx_len_queue[MQTT_RX_QUEUE_DEPTH] = {0};
+static volatile uint8_t mqtt_rx_head = 0;
+static volatile uint8_t mqtt_rx_tail = 0;
+static volatile uint8_t mqtt_rx_count = 0;
+static volatile uint32_t mqtt_rx_drop_count = 0;
 
 bool device_status_report = 1;
 extern casa_context_t casa_ctx;
@@ -130,7 +132,7 @@ osThreadId_t mqttConnectHandle = NULL;
 const osThreadAttr_t mqtt_thread_attributes = {
   .name       = "mqtt_reconnection_check",
   .stack_size = 8192,           // Increased slightly to handle TLS + Stack overhead
-  .priority   = osPriorityNormal,
+  .priority   = osPriorityRealtime,
 };
 
 
@@ -141,10 +143,25 @@ void mqtt_message_callback(void *client, sl_mqtt_client_message_t *message, void
 {
   UNUSED_PARAMETER(client);
   UNUSED_PARAMETER(context);
-  memcpy(mqtt_rx_parse_buf, message->content, message->content_length);
-  mqtt_rx_parse_buf[message->content_length] = '\0';
-  mqtt_rx_message_len = message->content_length;
-  mqtt_rx_message_pending = true;
+  if ((message == NULL) || (message->content == NULL) || (message->content_length == 0)) {
+        return;
+    }
+
+    if (mqtt_rx_count >= MQTT_RX_QUEUE_DEPTH) {
+        mqtt_rx_drop_count++;
+        return;
+    }
+
+    uint16_t copy_len = (message->content_length < (MQTT_RX_PARSE_BUF_LEN - 1)) ?
+                        (uint16_t)message->content_length :
+                        (MQTT_RX_PARSE_BUF_LEN - 1);
+
+    memcpy(mqtt_rx_parse_queue[mqtt_rx_head], message->content, copy_len);
+    mqtt_rx_parse_queue[mqtt_rx_head][copy_len] = '\0';
+    mqtt_rx_len_queue[mqtt_rx_head] = copy_len;
+
+    mqtt_rx_head = (mqtt_rx_head + 1) % MQTT_RX_QUEUE_DEPTH;
+    mqtt_rx_count++;
 
 }
 
@@ -161,7 +178,6 @@ void mqtt_event_handler(void *client, sl_mqtt_client_event_t event, void *event_
   switch (event) {
     case SL_MQTT_CLIENT_CONNECTED_EVENT:
       mqtt_connection_check = 1;
-      mqtt_subscribe_pending = true;
       casa_ctx.mqtt_ssl_connection = 1;
       break;
 
@@ -173,13 +189,11 @@ void mqtt_event_handler(void *client, sl_mqtt_client_event_t event, void *event_
 
     case SL_MQTT_CLIENT_DISCONNECTED_EVENT:
       mqtt_connection_check = 0;
-      mqtt_subscribe_pending = false;
       casa_ctx.mqtt_ssl_connection = 0;
       break;
 
     case SL_MQTT_CLIENT_ERROR_EVENT:
       mqtt_connection_check = 0;
-      mqtt_subscribe_pending = false;
       casa_ctx.mqtt_ssl_connection = 0;
       break;
 
@@ -211,7 +225,9 @@ void mqtt_app_close(void)
         client_credentials = NULL;
     }
     mqtt_connection_check = false;
-    mqtt_subscribe_pending = false;
+    mqtt_rx_head = 0;
+    mqtt_rx_tail = 0;
+    mqtt_rx_count = 0;
     casa_ctx.mqtt_ssl_connection = 0;
     LOG_INFO("MQTT", "MQTT Session Closed");
 }
@@ -367,6 +383,7 @@ bool mqtt_app_start(void)
       if(mqtt_connection_check) {
           LOG_INFO("MQTT", "MQTT Connected");
           sl_mqtt_client_subscribe(&mqtt_client, (uint8_t *)mqtt_sub_topic, strlen(mqtt_sub_topic), QOS_OF_SUBSCRIPTION, 0, mqtt_message_callback, NULL);
+          LOG_INFO("MQTT", "Subscriptions processed");
           return true;
       } else {
           LOG_INFO("MQTT", "MQTT Trying to connect...");
@@ -389,14 +406,20 @@ void mqtt_reconnection_check(void *arg)
       // --- SECTION 1: FAST LOGIC (Executes every 50ms) ---
 
       // Handle Incoming Messages immediately
-      if(mqtt_connection_check && mqtt_rx_message_pending) {
-          printf("received JSON : %s\r\n", mqtt_rx_parse_buf);
-          if (!casa_message_parser(mqtt_rx_parse_buf, (int)mqtt_rx_message_len)) {
+      if(mqtt_connection_check && (mqtt_rx_count > 0)) {
+          printf("received JSON : %s\r\n", mqtt_rx_parse_queue[mqtt_rx_tail]);
+          if (!casa_message_parser(mqtt_rx_parse_queue[mqtt_rx_tail], (int)mqtt_rx_len_queue[mqtt_rx_tail])) {
               LOG_ERROR("MQTT", "MQTT payload parser failed");
           }
-          mqtt_rx_parse_buf[0] = '\0';
-          mqtt_rx_message_len = 0;
-          mqtt_rx_message_pending = false;
+          mqtt_rx_parse_queue[mqtt_rx_tail][0] = '\0';
+          mqtt_rx_len_queue[mqtt_rx_tail] = 0;
+          mqtt_rx_tail = (mqtt_rx_tail + 1) % MQTT_RX_QUEUE_DEPTH;
+          mqtt_rx_count--;
+      }
+
+      if (mqtt_rx_drop_count > 0) {
+          LOG_WARN("MQTT", "Dropped %lu incoming MQTT messages due to RX queue overflow", mqtt_rx_drop_count);
+          mqtt_rx_drop_count = 0;
       }
 
       // --- SECTION 2: SLOW LOGIC (Executes every 5000ms) ---
@@ -407,19 +430,6 @@ void mqtt_reconnection_check(void *arg)
           // 1. Connection Management
           if(mqtt_connection_check == 0 && internet_status == 1) {
               mqtt_app_start();
-          }
-
-          if(mqtt_connection_check) {
-              // 2. Handle Subscriptions
-              if (mqtt_subscribe_pending) {
-                  // Dynamic topic subscription
-                  sl_mqtt_client_subscribe(&mqtt_client, (uint8_t *)mqtt_sub_topic,
-                                          strlen(mqtt_sub_topic), QOS_OF_SUBSCRIPTION,
-                                          0, mqtt_message_callback, NULL);
-
-                  mqtt_subscribe_pending = false;
-                  LOG_INFO("MQTT", "Subscriptions processed");
-              }
           }
       }
       osDelay(10);
