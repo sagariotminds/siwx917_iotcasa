@@ -25,25 +25,23 @@ device_control_context_t device_control = { 0 };
 
 void casa_device_status_update(void)
 {
-  printf("casa_device_status_update %d\r\n",casa_ctx.reg_status);
   if (casa_ctx.reg_status == REGISTRATION_DONE) {
-      printf("casa_ctx.reg_status %d\r\n",casa_ctx.reg_status);
-        int endpoint = device_control.endpoint_info[0].endpoint - 1;
-        if(mqtt_connection_check == true ) {
-            device_control.call_type = 0;
-            if(gpio_timer[endpoint].active == true) {
-                gpio_timer[endpoint].active = false;
-                set_timer_control(endpoint + 1,0);
-                if( timer_ctrl_status[endpoint]== true ) {
-                    strcpy(device_control.msg_from, TIMER_CONTROL);
-                    send_timer_resp(0,2, endpoint + 1,3);
-                    LOG_ERROR(TAG, "Endpoint : %d timer successfully completed %lld sec ",endpoint + 1,gpio_timer[endpoint].duration_ticks);
-                } else {
-                    send_timer_resp(0,2, endpoint + 1,4);
-                    LOG_ERROR(TAG, "Endpoint : %d timer cancelled",endpoint + 1);
-                }
-                timer_ctrl_status[endpoint]= false;
-            }
+      int endpoint = device_control.endpoint_info[0].endpoint - 1;
+      if(mqtt_connection_check == true ) {
+          device_control.call_type = 0;
+          if(gpio_timer[endpoint].active == true) {
+              gpio_timer[endpoint].active = false;
+              set_timer_control(endpoint + 1,0);
+              if( timer_ctrl_status[endpoint]== true ) {
+                  strcpy(device_control.msg_from, TIMER_CONTROL);
+                  send_timer_resp(0,2, endpoint + 1,3);
+                  LOG_ERROR(TAG, "Endpoint : %d timer successfully completed %lld sec ",endpoint + 1,gpio_timer[endpoint].duration_ticks);
+              } else {
+                  send_timer_resp(0,2, endpoint + 1,4);
+                  LOG_ERROR(TAG, "Endpoint : %d timer cancelled",endpoint + 1);
+              }
+              timer_ctrl_status[endpoint]= false;
+          }
         } else if(gpio_timer[endpoint].active == true){
             gpio_timer[endpoint].active = false;
             if( timer_ctrl_status[endpoint]== true ) {
@@ -52,9 +50,7 @@ void casa_device_status_update(void)
                 LOG_ERROR(TAG, "Endpoint : %d timer cancelled",endpoint + 1);
             }
         }
-        printf("internet_status %d\r\n",internet_status);
         if(internet_status == true) {
-            printf("internet_status %d\r\n",internet_status);
             construct_status_update_json();
         }
     }
@@ -96,8 +92,7 @@ void control_endpoint(void)
 
 void construct_status_update_json(void)
 {
-   printf("construct_status_update_json\r\n");
-   char enpoint[ENDPOINT_LEN] = { '\0' };
+    char enpoint[ENDPOINT_LEN] = { '\0' };
     uint8_t gpio_level = 0;
 
     cJSON *root = cJSON_CreateObject();

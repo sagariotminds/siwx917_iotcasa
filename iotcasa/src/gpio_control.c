@@ -133,7 +133,6 @@ void push_button(uint8_t index)
   /* -------- RELEASE DETECT -------- */
   else if (gpio_level == 1 && !btn_edge_flag[index]) {
     btn_release_time_ms[index] = osKernelGetTickCount();
-    sl_gpio_driver_toggle_pin(&load_gpio_cfg[index].port_pin);
     btn_edge_flag[index] = 1;
     btn_released_event[index] = 1;
     btn_long_press_active[index] = 0;
@@ -155,7 +154,6 @@ void push_button(uint8_t index)
 
     btn_click_count[index]++;
     btn_released_event[index] = 0;
-    sl_gpio_driver_toggle_pin(&load_gpio_cfg[index].port_pin);
     manual_switch_handling(index);
 
     LOG_INFO(TAG, "BTN %d CLICK COUNT = %d", index, btn_click_count[index]);

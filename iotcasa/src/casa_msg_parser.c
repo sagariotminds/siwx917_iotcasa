@@ -398,7 +398,7 @@ int control_msg_parser(cJSON *json_parse)
 int casa_message_parser(char *casa_req, int Req_length)
 {
       (void)Req_length;
-      char operation_code = 0;
+      uint16_t  operation_code = 0;
       char ret_val = 0;
       cJSON *root = cJSON_Parse(casa_req);
       if (root == NULL) {

@@ -23,8 +23,7 @@
 
 static const char *TAG = "MQTTS";
 
-#define MQTT_BROKER_IP        "10.13.195.72"
-#define MQTT_BROKER_PORT      8883
+
 #define IOT_MQTT_HOST         "agile-lime-alpaca.rmq6.cloudamqp.com"
 #define CLIENT_PORT           1
 #define CLIENT_ID             "SIWX917_MQTT_TLS_CLIENT"
@@ -32,8 +31,6 @@ static const char *TAG = "MQTTS";
 #define TOPIC_TO_BE_SUBSCRIBED "test"
 #define QOS_OF_SUBSCRIPTION    SL_MQTT_QOS_LEVEL_1
 
-#define PUBLISH_TOPIC          "send"
-#define PUBLISH_MESSAGE_BASE   "Message Counter: "
 #define QOS_OF_PUBLISH_MESSAGE SL_MQTT_QOS_LEVEL_0
 
 #define IS_DUPLICATE_MESSAGE  0
@@ -45,8 +42,6 @@ static const char *TAG = "MQTTS";
 #define QOS_OF_LAST_WILL      1
 #define IS_LAST_WILL_RETAINED 1
 
-#define ENCRYPT_CONNECTION     1
-#define SEND_CREDENTIALS       1
 #define CERTIFICATE_INDEX      1
 #define MQTT_CONN_RETRY_LIMIT  30                         /* MQTT connection retry limit 30 -> 15 sec */
 #define KEEP_ALIVE_INTERVAL    60
@@ -56,6 +51,16 @@ static const char *TAG = "MQTTS";
 
 #define USERNAME "ihkkclcq:ihkkclcq"
 #define PASSWORD "iE6uMQPeFgvHDic4kJpEoyboCsPDr1rs"
+
+/******************************************************
+ *               Globals
+ ******************************************************/
+sl_mqtt_client_t mqtt_client;
+sl_mqtt_client_credentials_t *client_credentials = NULL;
+sl_mqtt_client_configuration_t mqtt_client_config = {0};
+sl_mqtt_client_last_will_message_t last_will_message = {0};
+sl_mqtt_broker_t mqtt_broker_config = {0};
+
 
 char mqtt_pub_topic[MQTT_TOPIC_LEN] = {'\0'};                                          /* MQTT publish topic data buffer */
 char mqtt_sub_topic[MQTT_TOPIC_LEN] = {'\0'};                                          /* MQTT subscribe topic data buffer */
@@ -80,7 +85,6 @@ extern casa_context_t casa_ctx;
 bool mqtt_connection_check = false;
 bool ssl_connection_error = false;
 extern bool internet_status;
-sl_mqtt_client_t mqtt_client;
 extern float fw_version;
 
 const unsigned char mycacert[] =
@@ -131,40 +135,16 @@ const osThreadAttr_t mqtt_thread_attributes = {
 
 
 /******************************************************
- *               Globals
- ******************************************************/
-sl_mqtt_client_t client;
-sl_mqtt_client_credentials_t *client_credentials = NULL;
-sl_mqtt_client_configuration_t mqtt_client_config = {0};
-sl_mqtt_client_last_will_message_t last_will_message = {0};
-sl_mqtt_broker_t mqtt_broker_config = {0};
-
-
-/******************************************************
  *               MQTT MESSAGE CALLBACK
  ******************************************************/
 void mqtt_message_callback(void *client, sl_mqtt_client_message_t *message, void *context)
 {
   UNUSED_PARAMETER(client);
   UNUSED_PARAMETER(context);
-
-  if (message == NULL || message->content == NULL || message->content_length == 0) {
-  //     LOG_WARN("MQTT", "Received empty MQTT payload");
-   return;
-  }
-
-  if (message->content_length >= MQTT_RX_PARSE_BUF_LEN) {
-  //     LOG_ERROR("MQTT", "MQTT payload too large for parser buffer (%u)", (unsigned int)message->content_length);
-   return;
-  }
-
-  if (mqtt_rx_message_pending) {
-     return;
-   }
-   memcpy(mqtt_rx_parse_buf, message->content, message->content_length);
-   mqtt_rx_parse_buf[message->content_length] = '\0';
-   mqtt_rx_message_len = message->content_length;
-   mqtt_rx_message_pending = true;
+  memcpy(mqtt_rx_parse_buf, message->content, message->content_length);
+  mqtt_rx_parse_buf[message->content_length] = '\0';
+  mqtt_rx_message_len = message->content_length;
+  mqtt_rx_message_pending = true;
 
 }
 
@@ -436,7 +416,7 @@ void mqtt_reconnection_check(void *arg)
 
       // --- SECTION 2: SLOW LOGIC (Executes every 5000ms) ---
 
-      if (slow_loop_timer >= 100) { // 100 iterations * 50ms = 5000ms
+      if (slow_loop_timer >= 500) { // 500 iterations * 10ms = 5000ms
           slow_loop_timer = 0; // Reset the 5s timer
 
           // 1. Connection Management
@@ -462,7 +442,7 @@ void mqtt_reconnection_check(void *arg)
               }
           }
       }
-      osDelay(50);
+      osDelay(10);
       slow_loop_timer++;
   }
 }
