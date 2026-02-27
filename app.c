@@ -19,26 +19,28 @@
  * Initialize application.
  ******************************************************************************/
 
-/* --- System & RTOS --- */
-
-#include <casa_log.h>
-#include <gpio_control.h>
-
-#include "iotcasa_types.h"
-#include "casa_module.h"
-#include "bluetooth.h"
 #include "wifi.h"
+#include "casa_log.h"
+#include "bluetooth.h"
+#include "casa_module.h"
+#include "gpio_control.h"
 #include "registration.h"
-#include "de_registration.h"
-#include "eeprom_manage.h"
 #include "mqtt_handler.h"
+#include "eeprom_manage.h"
+#include "iotcasa_types.h"
 #include "device_control.h"
-
-
-extern casa_context_t casa_ctx;
+#include "de_registration.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
+
+extern casa_context_t casa_ctx;
+
+const osThreadAttr_t casa_app_thread_attributes = {
+  .name       = "casa_app",
+  .stack_size = 4000,
+  .priority   = osPriorityRealtime,
+};
 
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
@@ -65,83 +67,74 @@ void print_overall_app_memory(const char *checkpoint_name)
   LOG_INFO("MEM", "============================================");
 }
 
-const osThreadAttr_t casa_app_thread_attributes = {
-  .name       = "casa_app",
-  .stack_size = 4000,
-  .priority   = osPriorityRealtime,
-};
-
 void casa_app_process_action(void *argument)
 {
-  UNUSED_PARAMETER(argument);
-//  printf("This is app process action loop.\r\n");
-  while(1) {
-//        printf("This is app process action loop.\r\n");
-//        casa_ble_process();
+    UNUSED_PARAMETER(argument);
+    while(1) {
 
-        switch (casa_ctx.current_operation)
-        {
-            case REGISTRATION:
-            {
-                casa_registration();
-                break;
-            }
-            case DEREGISTRATION:
-            {
-                casa_deregistration();
-                break;
-            }
-            case STATUS_UPDATE:
-            {
-                casa_device_status_update();
-                break;
-            }
-            case FOTA_UPDATE:
-            {
-                break;
-            }
-            case WIFI_CRED_CHANGE:
-            {
-                break;
-            }
-            case CASA_IDLE:
-            {
-                break;
-            }
-            default:
-            {
-                break;
-            }
-        }
-        osDelay(10);    /* Delay the main Loop execution for 50 milliseconds */
-  }
-
+      switch (casa_ctx.current_operation)
+      {
+          case REGISTRATION:
+          {
+              casa_registration();
+              break;
+          }
+          case DEREGISTRATION:
+          {
+              casa_deregistration();
+              break;
+          }
+          case STATUS_UPDATE:
+          {
+              casa_device_status_update();
+              break;
+          }
+          case FOTA_UPDATE:
+          {
+              break;
+          }
+          case WIFI_CRED_CHANGE:
+          {
+              break;
+          }
+          case CASA_IDLE:
+          {
+              break;
+          }
+          default:
+          {
+              break;
+          }
+      }
+      osDelay(50);    /* Delay the main Loop execution for 50 milliseconds */
+    }
 }
 
 /**************** App Init ****************/
 void app_init(void)
 {
   LOG_INFO("APP", "========== app_init started ==========");
-
-  log_mem_snapshot("app init - before start");
   /* Print memory snapshot at startup */
   print_overall_app_memory("STARTUP");
+  log_mem_snapshot("app init - before start");
   casa_ctx.current_operation = CASA_IDLE;
-//  osThreadNew(casa_app_process_action, NULL, &casa_app_thread_attributes);
+  set_device_id_and_hostname();
+  gpio_init();
+  nvm3_eeprom_init();
+
+  if (casa_ctx.reg_status == REGISTRATION_DONE) {
+      wifi_sta("YOUR_AP_SSID", "YOUR_AP_PASSPHRASE");
+      constuct_secure_mqtt_sub_pub_topic();
+      construct_mqtt_lastWill_pub_topic();
+      construct_mqtt_device_log_pub_topic();
+      mqtt_connection_task_create();
+  } else {
+      casa_ctx.current_operation = REGISTRATION;
+  }
 
   if (osThreadNew(casa_app_process_action, NULL, &casa_app_thread_attributes) != NULL) {
       LOG_INFO("APP", "casa app task created.");
   } else {
       LOG_ERROR("APP", "casa app task not created.");
   }
-  set_device_id_and_hostname();
-
-  gpio_init();
-  nvm3_eeprom_init();
-  get_eeprom_device_state_info();
-  get_eeprom_device_reg_info();
-
-//  wifi_sta("YOUR_AP_SSID", "YOUR_AP_PASSPHRASE");
-
-  casa_ctx.current_operation = REGISTRATION;
 }

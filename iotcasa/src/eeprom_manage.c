@@ -17,38 +17,11 @@
 #include "device_control.h"
 
 #define NVM3_DEFAULT_HANDLE nvm3_defaultHandle
-#define KEY_COUNTER   1
-#define KEY_STRING    2
-#define KEY_FLOAT     3
 
 extern float fw_version;
 extern casa_context_t casa_ctx;
 extern sl_si91x_gpio_pin_config_t load_gpio_cfg[];
 extern device_control_context_t device_control;
-
-uint32_t persistent_counter = 0;
-char persistent_string[64];
-float persistent_float = 0.0f;
-
-
-// --- Your Original Functions ---
-
-//void NVS_init(void) {
-//    int idx = 0;
-//    while(idx < 3) {
-//        Ecode_t err = nvm3_open(nvm3_defaultHandle, nvm3_defaultInit);
-//        if (err != ECODE_NVM3_OK) {
-//            if(idx >= 2) {
-//                nvm3_eraseAll(nvm3_defaultHandle);
-//                nvm3_open(nvm3_defaultHandle, nvm3_defaultInit);
-//            }
-//        } else {
-//            return;
-//        }
-//        idx++;
-//        osDelay(1000);
-//    }
-//}
 
 // Group 0x00: Device Registration & Identity
 #define NVM3_KEY_REG_STATUS    0x0001
@@ -78,90 +51,226 @@ float persistent_float = 0.0f;
 #define NVM3_KEY_TIMER_BASE    0x0500
 #define NVM3_KEY_TIMER(n)      (NVM3_KEY_TIMER_BASE + n)
 
+static bool nvm3_read_u8_key(nvm3_ObjectKey_t key, uint8_t *value)
+{
+    uint32_t object_type = 0;
+    size_t object_len = 0;
+    Ecode_t err = nvm3_getObjectInfo(nvm3_defaultHandle, key, &object_type, &object_len);
+
+    if (err != ECODE_NVM3_OK || object_type != NVM3_OBJECTTYPE_DATA || object_len != sizeof(uint8_t)) {
+        return false;
+    }
+
+    return (nvm3_readData(nvm3_defaultHandle, key, value, sizeof(uint8_t)) == ECODE_NVM3_OK);
+}
+
+static bool nvm3_read_i32_key(nvm3_ObjectKey_t key, int32_t *value)
+{
+    uint32_t object_type = 0;
+    size_t object_len = 0;
+    Ecode_t err;
+
+    if (value == NULL) {
+        return false;
+    }
+
+    err = nvm3_getObjectInfo(nvm3_defaultHandle, key, &object_type, &object_len);
+    if (err != ECODE_NVM3_OK || object_type != NVM3_OBJECTTYPE_DATA || object_len != sizeof(int32_t)) {
+        return false;
+    }
+
+    return (nvm3_readData(nvm3_defaultHandle, key, value, sizeof(int32_t)) == ECODE_NVM3_OK);
+}
+
+//static bool nvm3_read_u32_key(nvm3_ObjectKey_t key, uint32_t *value)
+//{
+//    uint32_t object_type = 0;
+//    size_t object_len = 0;
+//    Ecode_t err;
+//
+//    if (value == NULL) {
+//        return false;
+//    }
+//
+//    err = nvm3_getObjectInfo(nvm3_defaultHandle, key, &object_type, &object_len);
+//    if (err != ECODE_NVM3_OK || object_type != NVM3_OBJECTTYPE_DATA || object_len != sizeof(uint32_t)) {
+//        return false;
+//    }
+//
+//    return (nvm3_readData(nvm3_defaultHandle, key, value, sizeof(uint32_t)) == ECODE_NVM3_OK);
+//}
+
+static bool nvm3_read_float_key(nvm3_ObjectKey_t key, float *value)
+{
+    uint32_t object_type = 0;
+    size_t object_len = 0;
+    Ecode_t err;
+
+    if (value == NULL) {
+        return false;
+    }
+
+    err = nvm3_getObjectInfo(nvm3_defaultHandle, key, &object_type, &object_len);
+    if (err != ECODE_NVM3_OK || object_type != NVM3_OBJECTTYPE_DATA || object_len != sizeof(float)) {
+        return false;
+    }
+
+    return (nvm3_readData(nvm3_defaultHandle, key, value, sizeof(float)) == ECODE_NVM3_OK);
+}
+
+static bool nvm3_read_string_key(nvm3_ObjectKey_t key, char *dst, size_t dst_len)
+{
+    uint32_t object_type = 0;
+    size_t object_len = 0;
+    size_t read_len = 0;
+    Ecode_t err;
+
+    if (dst == NULL || dst_len == 0) {
+        return false;
+    }
+
+    dst[0] = '\0';
+
+    err = nvm3_getObjectInfo(nvm3_defaultHandle, key, &object_type, &object_len);
+    if (err != ECODE_NVM3_OK || object_type != NVM3_OBJECTTYPE_DATA || object_len == 0) {
+        return false;
+    }
+
+    read_len = (object_len < (dst_len - 1)) ? object_len : (dst_len - 1);
+    err = nvm3_readData(nvm3_defaultHandle, key, dst, read_len);
+    if (err != ECODE_NVM3_OK) {
+        dst[0] = '\0';
+        return false;
+    }
+
+    dst[read_len] = '\0';
+    return true;
+}
+
+static void nvm3_write_u8_key(nvm3_ObjectKey_t key, uint8_t value)
+{
+    nvm3_writeData(nvm3_defaultHandle, key, &value, sizeof(uint8_t));
+}
+
+static void nvm3_write_i32_key(nvm3_ObjectKey_t key, int32_t value)
+{
+    nvm3_writeData(nvm3_defaultHandle, key, &value, sizeof(int32_t));
+}
+
+static void nvm3_write_float_key(nvm3_ObjectKey_t key, float value)
+{
+    nvm3_writeData(nvm3_defaultHandle, key, &value, sizeof(float));
+}
+
+static void nvm3_write_string_key(nvm3_ObjectKey_t key, const char *src)
+{
+    if (src == NULL) {
+        return;
+    }
+
+    if (src[0] == '\0') {
+        nvm3_deleteObject(nvm3_defaultHandle, key);
+        return;
+    }
+
+    nvm3_writeData(nvm3_defaultHandle, key, (const uint8_t *)src, strlen(src) + 1);
+}
+
 
 void get_eeprom_device_reg_info(void)
 {
-    sl_status_t status;
+    memset(casa_ctx.ssid, 0, sizeof(casa_ctx.ssid));
+    memset(casa_ctx.password, 0, sizeof(casa_ctx.password));
+    memset(casa_ctx.userid, 0, sizeof(casa_ctx.userid));
+    memset(casa_ctx.location, 0, sizeof(casa_ctx.location));
 
-    // 1. Read Registration Status (Integer)
-    status = nvm3_readData(nvm3_defaultHandle, NVM3_KEY_REG_STATUS, &casa_ctx.reg_status, sizeof(casa_ctx.reg_status));
-
-    if (status != SL_STATUS_OK) {
-        LOG_ERROR("NVS", "Execution: FAILED to read Reg Status (0x%lx)", status);
-        casa_ctx.reg_status = !REGISTRATION_DONE;
+    if (!nvm3_read_u8_key(NVM3_KEY_REG_STATUS, &casa_ctx.reg_status)) {
+        casa_ctx.reg_status = (uint8_t)!REGISTRATION_DONE;
+        nvm3_write_u8_key(NVM3_KEY_REG_STATUS, casa_ctx.reg_status);
+        LOG_WARN("NVS", "Execution: Reg Status not available yet, defaulted to NOT_DONE");
     }
 
-    // 2. Read Strings
-    // We pass the size of our destination buffers to prevent memory overflow
-    nvm3_readData(nvm3_defaultHandle, NVM3_KEY_UNIQUE_ID, casa_ctx.uniqueid, sizeof(casa_ctx.uniqueid));
-    nvm3_readData(nvm3_defaultHandle, NVM3_KEY_HOST_NAME, casa_ctx.hostname, sizeof(casa_ctx.hostname));
-    nvm3_readData(nvm3_defaultHandle, NVM3_KEY_WIFI_SSID, casa_ctx.ssid, sizeof(casa_ctx.ssid));
-    nvm3_readData(nvm3_defaultHandle, NVM3_KEY_WIFI_PASSWORD, casa_ctx.password, sizeof(casa_ctx.password));
-    nvm3_readData(nvm3_defaultHandle, NVM3_KEY_USERID, casa_ctx.userid, sizeof(casa_ctx.userid));
-    nvm3_readData(nvm3_defaultHandle, NVM3_KEY_LOCATION_ID, casa_ctx.location, sizeof(casa_ctx.location));
+    nvm3_read_string_key(NVM3_KEY_WIFI_SSID, casa_ctx.ssid, sizeof(casa_ctx.ssid));
+    nvm3_read_string_key(NVM3_KEY_WIFI_PASSWORD, casa_ctx.password, sizeof(casa_ctx.password));
+    nvm3_read_string_key(NVM3_KEY_USERID, casa_ctx.userid, sizeof(casa_ctx.userid));
+    nvm3_read_string_key(NVM3_KEY_LOCATION_ID, casa_ctx.location, sizeof(casa_ctx.location));
 
-    // 3. Logic: If Registration was not done, check if we have enough info to complete it
-    if (casa_ctx.reg_status != REGISTRATION_DONE) {
-        LOG_WARN("NVS", "Execution: Reg not done, checking acquired strings...");
+    // UID / Hostname fallback to generated defaults if NVM data is not present.
+    if (casa_ctx.uniqueid[0] == '\0') {
+        nvm3_read_string_key(NVM3_KEY_UNIQUE_ID, casa_ctx.uniqueid, sizeof(casa_ctx.uniqueid));
+    }
+    if (casa_ctx.hostname[0] == '\0') {
+        nvm3_read_string_key(NVM3_KEY_HOST_NAME, casa_ctx.hostname, sizeof(casa_ctx.hostname));
+    }
 
-        if (strlen(casa_ctx.uniqueid) > 0 && strlen(casa_ctx.ssid) > 0 && strlen(casa_ctx.password) > 0) {
-            casa_ctx.reg_status = REGISTRATION_DONE;
-            nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_REG_STATUS, &casa_ctx.reg_status, sizeof(int32_t));
-            LOG_INFO("NVS", "Execution: SUCCESS - Registration auto-completed");
-        }
-    } else {
-        // 4. Logic: Sanity check - if status says DONE but all strings are empty, reset status
-        if (strlen(casa_ctx.uniqueid) == 0 && strlen(casa_ctx.ssid) == 0) {
-            casa_ctx.reg_status = !REGISTRATION_DONE;
-            nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_REG_STATUS, &casa_ctx.reg_status, sizeof(int32_t));
-            LOG_ERROR("NVS", "Execution: Status mismatch! Strings empty. Resetting status.");
+    // 3. Keep registration state strict: only complete if required cloud fields are present.
+    if (casa_ctx.reg_status == REGISTRATION_DONE) {
+        if (strlen(casa_ctx.ssid) == 0 || strlen(casa_ctx.password) == 0 || strlen(casa_ctx.userid) == 0) {
+            casa_ctx.reg_status = (uint8_t)!REGISTRATION_DONE;
+            nvm3_write_u8_key(NVM3_KEY_REG_STATUS, casa_ctx.reg_status);
+            LOG_WARN("NVS", "Execution: Reg status reset. Missing SSID/PWD/User in NVM");
         }
     }
 
-    // Final Log with Full Data (Using your Total Line Color logic)
-    LOG_INFO("NVS", "Device Reg Info: Stat:%d, UID:%s, Host:%s, SSID:%s, User:%s", casa_ctx.reg_status, casa_ctx.uniqueid, casa_ctx.hostname, casa_ctx.ssid, casa_ctx.userid);
+    LOG_INFO("NVS", "Device Reg Info: Stat:%d, UID:%s, Host:%s, SSID:%s, User:%s LocId:%s",
+             casa_ctx.reg_status, casa_ctx.uniqueid, casa_ctx.hostname, casa_ctx.ssid, casa_ctx.userid, casa_ctx.location);
 }
 
 void set_eeprom_device_reg_info(void)
 {
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_REG_STATUS, (uint8_t *)&casa_ctx.reg_status, sizeof(int32_t));
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_UNIQUE_ID, (uint8_t *)casa_ctx.uniqueid, strlen(casa_ctx.uniqueid) + 1);
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_HOST_NAME, (uint8_t *)casa_ctx.hostname, strlen(casa_ctx.hostname) + 1);
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_WIFI_SSID, (uint8_t *)casa_ctx.ssid, strlen(casa_ctx.ssid) + 1);
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_WIFI_PASSWORD, (uint8_t *)casa_ctx.password, strlen(casa_ctx.password) + 1);
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_USERID, (uint8_t *)casa_ctx.userid, strlen(casa_ctx.userid) + 1);
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_LOCATION_ID, (uint8_t *)casa_ctx.location, strlen(casa_ctx.location) + 1);
-    LOG_INFO("NVM", "Execution: SUCCESS - Device Reg Info Saved");
+    bool has_required_fields = (strlen(casa_ctx.ssid) > 0 && strlen(casa_ctx.password) > 0 && strlen(casa_ctx.userid) > 0);
+
+    if (casa_ctx.reg_status == REGISTRATION_DONE && !has_required_fields) {
+        LOG_WARN("NVM", "Execution: Prevented save with empty SSID/PWD/User. Forcing reg_status to NOT_DONE");
+        casa_ctx.reg_status = (uint8_t)!REGISTRATION_DONE;
+    }
+
+    nvm3_write_u8_key(NVM3_KEY_REG_STATUS, casa_ctx.reg_status);
+
+    nvm3_write_string_key(NVM3_KEY_UNIQUE_ID, casa_ctx.uniqueid);
+    nvm3_write_string_key(NVM3_KEY_HOST_NAME, casa_ctx.hostname);
+    nvm3_write_string_key(NVM3_KEY_WIFI_SSID, casa_ctx.ssid);
+    nvm3_write_string_key(NVM3_KEY_WIFI_PASSWORD, casa_ctx.password);
+    nvm3_write_string_key(NVM3_KEY_USERID, casa_ctx.userid);
+    nvm3_write_string_key(NVM3_KEY_LOCATION_ID, casa_ctx.location);
+
+    LOG_INFO("NVM", "Execution: SUCCESS - Device Reg Info Saved (Stat:%d SSID:%u User:%u Loc:%u)",
+             casa_ctx.reg_status,
+             (unsigned int)strlen(casa_ctx.ssid),
+             (unsigned int)strlen(casa_ctx.userid),
+             (unsigned int)strlen(casa_ctx.location));
 }
 
 void get_eeprom_device_HW_details(void)
 {
-    nvm3_readData(nvm3_defaultHandle, NVM3_KEY_HW_VER, &casa_ctx.hardware_ver, sizeof(float));
-    nvm3_readData(nvm3_defaultHandle, NVM3_KEY_HW_BATCH, casa_ctx.hw_batch, sizeof(casa_ctx.hw_batch));
+    if (!nvm3_read_float_key(NVM3_KEY_HW_VER, &casa_ctx.hardware_ver)) {
+        casa_ctx.hardware_ver = 0.0f;
+    }
+
+    nvm3_read_string_key(NVM3_KEY_HW_BATCH, casa_ctx.hw_batch, sizeof(casa_ctx.hw_batch));
     LOG_INFO("NVM", "Execution: SUCCESS - HW Details Loaded (Ver: %.2f | Batch: %s)", casa_ctx.hardware_ver, casa_ctx.hw_batch);
 }
 
 void set_eeprom_device_HW_details(void)
 {
     float my_float_value = HW_VERSION;
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_HW_VER, (uint8_t *)&my_float_value, sizeof(float));
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_HW_BATCH, (uint8_t *)HW_BATCH, strlen(HW_BATCH) + 1);
+
+    nvm3_write_float_key(NVM3_KEY_HW_VER, my_float_value);
+    nvm3_write_string_key(NVM3_KEY_HW_BATCH, HW_BATCH);
     LOG_INFO("NVM", "Execution: SUCCESS - HW Details Saved (Ver: %.2f | Batch: %s)", my_float_value, HW_BATCH);
 }
 
 void set_timer_control(int node, int state)
 {
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_TIMER(node), (uint8_t *)&state, sizeof(int32_t));
+    nvm3_write_i32_key(NVM3_KEY_TIMER(node), (int32_t)state);
     LOG_INFO("NVM", "Execution: SUCCESS - Timer Node %d State Saved: %d (Key: 0x%04X)", node, state, NVM3_KEY_TIMER(node));
 }
 
 int get_timer_control(int node)
 {
     int32_t state = 0;
-    // Read directly using the calculated key number
-    sl_status_t status = nvm3_readData(nvm3_defaultHandle, NVM3_KEY_TIMER(node), &state, sizeof(int32_t));
 
-    if (status != SL_STATUS_OK) {
+    if (!nvm3_read_i32_key(NVM3_KEY_TIMER(node), &state)) {
         LOG_WARN("NVM", "Execution: Timer Node %d not found, returning 0", node);
         return 0;
     }
@@ -176,7 +285,7 @@ void save_device_status(int index)
     int32_t val = device_control.endpoint_info[index].set_value;
 
     // Save to NVM3 using Endpoint ID (e.g., Index 0 -> Key 0x0201)
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_ENDPOINT(device_control.endpoint_info[index].endpoint), (uint8_t *)&val, sizeof(int32_t));
+    nvm3_write_i32_key(NVM3_KEY_ENDPOINT(device_control.endpoint_info[index].endpoint), val);
 
     if (casa_ctx.reg_dereg_flag == 0) casa_ctx.switch_interrupts = ENABLE;
     LOG_INFO("NVM", "Execution: SUCCESS - Saved Index %d [Value: %ld] Endpoint :%d", index, val, device_control.endpoint_info[index].endpoint);
@@ -184,19 +293,20 @@ void save_device_status(int index)
 
 void get_eeprom_device_state_info(void)
 {
-    int32_t saved_val = 0;
     for (int i = 1; i <= NO_OF_ENDPOINTS; i++) {
+        int32_t saved_val = 0;
+
         // Read state from NVM3
-        sl_status_t status = nvm3_readData(nvm3_defaultHandle, NVM3_KEY_ENDPOINT(i), &saved_val, sizeof(int32_t));
+        bool has_saved_state = nvm3_read_i32_key(NVM3_KEY_ENDPOINT(i), &saved_val);
 
         // If data exists, apply to GPIO; otherwise, default to OFF (0)
-        if (status == SL_STATUS_OK && saved_val == 1) {
+        if (has_saved_state && saved_val == 1) {
             sl_gpio_driver_set_pin(&load_gpio_cfg[i].port_pin); // ON
         } else {
             sl_gpio_driver_clear_pin(&load_gpio_cfg[i].port_pin); // OFF
         }
 
-        LOG_INFO("NVM", "Execution: SUCCESS - Restored Index %d to %s", i, (saved_val == 1) ? "ON" : "OFF");
+        LOG_INFO("NVM", "Execution: SUCCESS - Restored Index %d to %s", i, (has_saved_state && saved_val == 1) ? "ON" : "OFF");
     }
     casa_ctx.switch_interrupts = ENABLE;
 }
@@ -204,11 +314,9 @@ void get_eeprom_device_state_info(void)
 
 void clear_dev_reg_preferences(void)
 {
-    int32_t reset_val = 0;
-
     // Reset Integer Statuses to 0 (Key 0x0001, 0x0002)
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_REG_STATUS, &reset_val, sizeof(int32_t));
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_REG_MODE, &reset_val, sizeof(int32_t));
+    nvm3_write_u8_key(NVM3_KEY_REG_STATUS, 0);
+    nvm3_write_u8_key(NVM3_KEY_REG_MODE, 0);
 
     // Delete String Objects to wipe memory (Keys 0x0003 - 0x0008)
     nvm3_deleteObject(nvm3_defaultHandle, NVM3_KEY_UNIQUE_ID);
@@ -219,8 +327,8 @@ void clear_dev_reg_preferences(void)
     nvm3_deleteObject(nvm3_defaultHandle, NVM3_KEY_LOCATION_ID);
 
     // Reset Switch and Secure States (Keys 0x0301, 0x0302)
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_SW_STATE, &reset_val, sizeof(int32_t));
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_SECURE, &reset_val, sizeof(int32_t));
+    nvm3_write_u8_key(NVM3_KEY_SW_STATE, 0);
+    nvm3_write_u8_key(NVM3_KEY_SECURE, 0);
 
     // Industrial Standard: Repack to reclaim flash space immediately
     nvm3_repack(nvm3_defaultHandle);
@@ -257,149 +365,75 @@ void clear_dev_reg_preferences(void)
 
 void set_eeprom_switch_state_info(uint8_t stat)
 {
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_SW_STATE, &stat, sizeof(uint8_t));
+    nvm3_write_u8_key(NVM3_KEY_SW_STATE, stat);
     casa_ctx.switch_op_state = stat;
     LOG_INFO("NVM", "Execution: SUCCESS - Switch State Saved: %d (Key: 0x0301)", stat);
 }
 
 void get_eeprom_switch_state_info(void)
 {
-    nvm3_readData(nvm3_defaultHandle, NVM3_KEY_SW_STATE, &casa_ctx.switch_op_state, sizeof(uint8_t));
+    if (!nvm3_read_u8_key(NVM3_KEY_SW_STATE, &casa_ctx.switch_op_state)) {
+        casa_ctx.switch_op_state = 0;
+    }
+
     LOG_INFO("NVM", "Execution: SUCCESS - Switch Op Status: %d", casa_ctx.switch_op_state);
 }
 
 void set_eeprom_secure_device_info(uint8_t sec)
 {
-    nvm3_writeData(nvm3_defaultHandle, NVM3_KEY_SECURE, &sec, sizeof(uint8_t));
+    nvm3_write_u8_key(NVM3_KEY_SECURE, sec);
     casa_ctx.secure_device = sec;
     LOG_INFO("NVM", "Execution: SUCCESS - Secure Mode Saved: %d (Key: 0x0302)", sec);
 }
 
 void get_eeprom_secure_device_info(void)
 {
-    nvm3_readData(nvm3_defaultHandle, NVM3_KEY_SECURE, &casa_ctx.secure_device, sizeof(uint8_t));
+    if (!nvm3_read_u8_key(NVM3_KEY_SECURE, &casa_ctx.secure_device)) {
+        casa_ctx.secure_device = 0;
+    }
+
     LOG_INFO("NVM", "Execution: SUCCESS - Secure Status: %d", casa_ctx.secure_device);
 }
 
-
-
-
-const osThreadAttr_t nvm3_thread_attributes = {
-  .name       = "nvm",
-  .stack_size = 3072,
-  .priority   = osPriorityLow,
-};
-
-
-void clear_counter(void)
-{
-  persistent_counter = 0;
-  nvm3_writeData(NVM3_DEFAULT_HANDLE, KEY_COUNTER, &persistent_counter, sizeof(persistent_counter));
-  LOG_DEBUG("NVM", "Counter cleared (value set to 0)");
+void NVS_init(void) {
+    int idx = 0;
+    while(idx < 3) {
+        if (nvm3_initDefault() != ECODE_NVM3_OK) {
+            if(idx >= 2) {
+                nvm3_eraseAll(nvm3_defaultHandle);
+                if (nvm3_initDefault() != ECODE_NVM3_OK) {
+                    LOG_ERROR("NVM", "NVM3 init failed");
+                    return;
+                  }
+            }
+            if (nvm3_deinitDefault() != ECODE_NVM3_OK) {
+                LOG_ERROR("NVM", "NVM3 close failed");
+            }
+        } else {
+            return;
+        }
+        idx++;
+        osDelay(1000);
+    }
 }
-
-void delete_counter(void)
-{
-  nvm3_deleteObject(NVM3_DEFAULT_HANDLE, KEY_COUNTER);
-  persistent_counter = 0;
-  nvm3_writeData(NVM3_DEFAULT_HANDLE, KEY_COUNTER, &persistent_counter, sizeof(persistent_counter));
-  LOG_DEBUG("NVM", "Counter cleared and reset to 0");
-}
-
-void clear_string_null(void)
-{
-  /* Delete the string key */
-  nvm3_deleteObject(NVM3_DEFAULT_HANDLE, KEY_STRING);
-
-  /* Store empty string back */
-  nvm3_writeData(NVM3_DEFAULT_HANDLE,KEY_STRING,"",0);
-
-  LOG_DEBUG("NVM", "String cleared and set to NULL");
-}
-
-/******************************************************
- * EEPROM
- ******************************************************/
-void save_all(void)
-{
-  nvm3_writeData(NVM3_DEFAULT_HANDLE, KEY_COUNTER,
-                 &persistent_counter, sizeof(persistent_counter));
-  nvm3_writeData(NVM3_DEFAULT_HANDLE, KEY_STRING,
-                 persistent_string, strlen(persistent_string));
-  nvm3_writeData(NVM3_DEFAULT_HANDLE, KEY_FLOAT,
-                 &persistent_float, sizeof(persistent_float));
-}
-
-void load_all(void)
-{
-  uint32_t type;
-  size_t len;
-  Ecode_t err;
-
-  /* Counter */
-  err = nvm3_getObjectInfo(NVM3_DEFAULT_HANDLE, KEY_COUNTER, &type, &len);
-  if (err == ECODE_NVM3_OK && type == NVM3_OBJECTTYPE_DATA)
-    nvm3_readData(NVM3_DEFAULT_HANDLE, KEY_COUNTER, &persistent_counter, sizeof(persistent_counter));
-  else
-    persistent_counter = 0;
-
-  /* String */
-  err = nvm3_getObjectInfo(NVM3_DEFAULT_HANDLE, KEY_STRING, &type, &len);
-  if (err == ECODE_NVM3_OK && type == NVM3_OBJECTTYPE_DATA) {
-    nvm3_readData(NVM3_DEFAULT_HANDLE, KEY_STRING, persistent_string, len);
-    persistent_string[len] = '\0';
-  } else {
-    strcpy(persistent_string, "IOTCASA");
-  }
-
-  /* Float */
-  err = nvm3_getObjectInfo(NVM3_DEFAULT_HANDLE, KEY_FLOAT, &type, &len);
-  if (err == ECODE_NVM3_OK && type == NVM3_OBJECTTYPE_DATA)
-    nvm3_readData(NVM3_DEFAULT_HANDLE, KEY_FLOAT, &persistent_float, sizeof(persistent_float));
-  else
-    persistent_float = 1.23f;
-
-  /* Save defaults if first boot */
-  save_all();
-
-  LOG_INFO("NVM", "Counter = %lu", persistent_counter);
-  LOG_INFO("NVM", "String  = %s", persistent_string);
-  LOG_INFO("NVM", "Float   = %.2f", persistent_float);
-}
-
-//static void nvm3_application_start(void *argument)
-//{
-//  UNUSED_PARAMETER(argument);
-//
-//  LOG_INFO("NVM", "=== SiWx917 EEPROM ===");
-//
-//
-//  /* Init NVM3 */
-//  if (nvm3_initDefault() != ECODE_NVM3_OK) {
-//    LOG_ERROR("NVM", "NVM3 init failed");
-//    return;
-//  }
-//
-//  load_all();
-//
-//  while (1) {
-//    osDelay(5000);
-//    persistent_counter++;
-//    persistent_float += 1.5f;
-//    strcpy(persistent_string, "SiWx917");
-//    save_all();
-//    LOG_DEBUG("NVM", "Saved → %lu, %s, %.2f",
-//           persistent_counter, persistent_string, persistent_float);
-//  }
-//}
 
 void nvm3_eeprom_init()
 {
 
   /* Init NVM3 */
-  if (nvm3_initDefault() != ECODE_NVM3_OK) {
-    LOG_ERROR("NVM", "NVM3 init failed");
-    return;
-  }
-//  osThreadNew(nvm3_application_start, NULL, &nvm3_thread_attributes);
+//  if (nvm3_initDefault() != ECODE_NVM3_OK) {
+//    LOG_ERROR("NVM", "NVM3 init failed");
+//    return;
+//  }
+
+  NVS_init();
+  #if (HW_FLASH == 1)
+      set_eeprom_device_HW_details();
+      set_eeprom_error_log_history();
+  #endif
+  get_eeprom_device_state_info();
+  get_eeprom_device_HW_details();
+  get_eeprom_switch_state_info();
+  get_eeprom_secure_device_info();
+  get_eeprom_device_reg_info();
 }

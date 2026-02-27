@@ -157,36 +157,30 @@ void log_mem_snapshot(const char *phase)
            (unsigned long)(stack_hwm_words * sizeof(StackType_t)));
 }
 
-int count  = 1;
 void mqtt_message_callback(void *client, sl_mqtt_client_message_t *message, void *context)
 {
   UNUSED_PARAMETER(client);
   UNUSED_PARAMETER(context);
 
-  printf("count %d received JSON : %s\r\n", count, message->content);
-  count ++;
-//  if(casa_ctx.reg_status != REGISTRATION_DONE) {
-      if ((message == NULL) || (message->content == NULL) || (message->content_length == 0)) {
-                return;
-            }
+  if ((message == NULL) || (message->content == NULL) || (message->content_length == 0)) {
+            return;
+        }
 
-            if (mqtt_rx_count >= MQTT_RX_QUEUE_DEPTH) {
-                mqtt_rx_drop_count++;
-                return;
-            }
+  if (mqtt_rx_count >= MQTT_RX_QUEUE_DEPTH) {
+      mqtt_rx_drop_count++;
+      return;
+  }
 
-            uint16_t copy_len = (message->content_length < (MQTT_RX_PARSE_BUF_LEN - 1)) ?
-                                (uint16_t)message->content_length :
-                                (MQTT_RX_PARSE_BUF_LEN - 1);
+  uint16_t copy_len = (message->content_length < (MQTT_RX_PARSE_BUF_LEN - 1)) ?
+                      (uint16_t)message->content_length :
+                      (MQTT_RX_PARSE_BUF_LEN - 1);
 
-            memcpy(mqtt_rx_parse_queue[mqtt_rx_head], message->content, copy_len);
-            mqtt_rx_parse_queue[mqtt_rx_head][copy_len] = '\0';
-            mqtt_rx_len_queue[mqtt_rx_head] = copy_len;
+  memcpy(mqtt_rx_parse_queue[mqtt_rx_head], message->content, copy_len);
+  mqtt_rx_parse_queue[mqtt_rx_head][copy_len] = '\0';
+  mqtt_rx_len_queue[mqtt_rx_head] = copy_len;
 
-            mqtt_rx_head = (mqtt_rx_head + 1) % MQTT_RX_QUEUE_DEPTH;
-            mqtt_rx_count++;
-//  }
-
+  mqtt_rx_head = (mqtt_rx_head + 1) % MQTT_RX_QUEUE_DEPTH;
+  mqtt_rx_count++;
 }
 
 /******************************************************
@@ -262,20 +256,23 @@ bool Mqtt_publish(const char *Topic, const char *string)
 {
   printf("Topic : %s\r\n string : %s\r\n msg len : %d\r\n",Topic,string,strlen(string));
 
-  if ((Topic == NULL) || (string == NULL) || !mqtt_connection_check) {
-      LOG_WARN("MQTT", "Publish skipped: invalid params or MQTT disconnected");
-      return false;
-  }
-  sl_mqtt_client_message_t publish_message;
-  publish_message.qos_level            = QOS_OF_PUBLISH_MESSAGE;
-  publish_message.is_retained          = IS_MESSAGE_RETAINED;
-  publish_message.is_duplicate_message = IS_DUPLICATE_MESSAGE;
-  publish_message.topic                = (uint8_t *)Topic;
-  publish_message.topic_length         = (uint32_t)strlen(Topic);
-  publish_message.content              = (uint8_t *)string;
-  publish_message.content_length       = (uint32_t)strlen(string);
+//  if(casa_ctx.reg_status != REGISTRATION_DONE) {
 
-  sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
+      if ((Topic == NULL) || (string == NULL) || !mqtt_connection_check) {
+          LOG_WARN("MQTT", "Publish skipped: invalid params or MQTT disconnected");
+          return false;
+      }
+      sl_mqtt_client_message_t publish_message;
+      publish_message.qos_level            = QOS_OF_PUBLISH_MESSAGE;
+      publish_message.is_retained          = IS_MESSAGE_RETAINED;
+      publish_message.is_duplicate_message = IS_DUPLICATE_MESSAGE;
+      publish_message.topic                = (uint8_t *)Topic;
+      publish_message.topic_length         = (uint32_t)strlen(Topic);
+      publish_message.content              = (uint8_t *)string;
+      publish_message.content_length       = (uint32_t)strlen(string);
+
+      sl_mqtt_client_publish(&mqtt_client, &publish_message, 0, NULL);
+//  }
 
   return true;
 }
