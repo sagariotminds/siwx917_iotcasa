@@ -70,5 +70,7 @@ void switches_handling_task(void *argument);
  */
 void gpio_init(void);
 
+void send_switch_mode_json_response(long long requestid);
+
 
 #endif /* IOTCASA_INCLUDE_MANUAL_CONTROL_H_ */

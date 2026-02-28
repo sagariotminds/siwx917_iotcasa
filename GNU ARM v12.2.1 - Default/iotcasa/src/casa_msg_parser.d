@@ -1,6 +1,6 @@
 iotcasa/src/casa_msg_parser.o: ../iotcasa/src/casa_msg_parser.c \
  C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_log.h \
- C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_msg_parser.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h \
  C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/iotcasa_types.h \
  c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_status.h \
  c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\rtos2\include\cmsis_os2.h \
@@ -36,14 +36,17 @@ iotcasa/src/casa_msg_parser.o: ../iotcasa/src/casa_msg_parser.c \
  c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_code_classification.h \
  c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sli_code_classification.h \
  C:\Users\User\SimplicityStudio\SDKs\simplicity_sdk\util\third_party\cjson/cJSON.h \
- C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h \
  C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h \
  C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/de_registration.h \
  C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/mqtt_handler.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/gpio_control.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/eeprom_manage.h \
  C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/device_control.h \
- C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h \
+ C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_msg_parser.h
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_log.h:
-C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_msg_parser.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/iotcasa_types.h:
 c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_status.h:
 c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\cmsis\rtos2\include\cmsis_os2.h:
@@ -79,9 +82,12 @@ c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_assert
 c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sl_code_classification.h:
 c:\users\user\simplicitystudio\sdks\simplicity_sdk\platform\common\inc\sli_code_classification.h:
 C:\Users\User\SimplicityStudio\SDKs\simplicity_sdk\util\third_party\cjson/cJSON.h:
-C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/de_registration.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/registration.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/mqtt_handler.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/gpio_control.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/eeprom_manage.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/device_control.h:
 C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_module.h:
+C:\Users\User\SimplicityStudio\v5_workspace\IOTCASA_SiWX917\iotcasa\inc/casa_msg_parser.h:

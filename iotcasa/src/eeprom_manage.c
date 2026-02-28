@@ -429,7 +429,7 @@ void nvm3_eeprom_init()
   NVS_init();
   #if (HW_FLASH == 1)
       set_eeprom_device_HW_details();
-      set_eeprom_error_log_history();
+//      set_eeprom_error_log_history();
   #endif
   get_eeprom_device_state_info();
   get_eeprom_device_HW_details();

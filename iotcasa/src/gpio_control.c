@@ -28,6 +28,7 @@ bool timer_ctrl_status[NO_OF_ENDPOINTS] = {false};
 
 extern casa_context_t casa_ctx;
 extern device_control_context_t device_control;
+extern char mqtt_pub_topic[MQTT_TOPIC_LEN];
 
 /* ================== GPIO CONFIG ================== */
 
@@ -260,4 +261,25 @@ void gpio_init(void)
   }
   osThreadNew((osThreadFunc_t)switches_handling_task, NULL, NULL);
   sl_gpio_driver_clear_pin(&load_gpio_cfg[0].port_pin);
+}
+
+void send_switch_mode_json_response(long long requestid)
+{
+    char buf[MANUAL_CTL_MODE_JSON_LEN] = { 0 };
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddNumberToObject(root, "reqId", requestid);
+    cJSON_AddNumberToObject(root, "optCode", SENSING_MODE_CHANGE_CODE);
+    cJSON_AddNumberToObject(root, "mode", casa_ctx.switch_op_state);
+    cJSON_AddStringToObject(root, "dId", casa_ctx.uniqueid);
+    cJSON_AddStringToObject(root, "uId", casa_ctx.userid);
+
+    char* json = cJSON_Print(root);
+    cJSON_Delete(root);
+    cJSON_Minify(json);
+    strcpy(buf,json);
+    free(json);
+
+    LOG_INFO(TAG, "send switch mode json response : %s",(char *)buf);
+    Mqtt_publish(mqtt_pub_topic, buf);
 }

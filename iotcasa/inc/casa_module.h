@@ -13,9 +13,10 @@
 #include "de_registration.h"
 
 #define NO_OF_ENDPOINTS 2               /* Number of endpoints supported by the CASA device */
+#define HW_FLASH        1
 #define MODEL           "ICR2S"
 #define HW_VERSION      1.2             /* Hardware version of CASA module */
-#define HW_BATCH        "09082023"      /* Hardware batch of CASA module */
+#define HW_BATCH        "23122025"      /* Hardware batch of CASA module */
 #define HOSTNAME_LEN    20
 #define UNIQEID_LEN     10
 #define LOC_LEN         100             /* User Location maximum length */
@@ -90,5 +91,7 @@ typedef enum
 
 
 void set_device_id_and_hostname();
+void send_secure_device_resp(long long requestid);
+void construct_device_status_resp(long long requestid);
 
 #endif /* IOTCASA_INCLUDE_CASA_MODULE_H_ */

@@ -16,12 +16,14 @@
 #include "sl_net_wifi_types.h"
 #include "sl_net_default_values.h"
 
+#include "wifi.h"
 #include "mqtt_handler.h"
 #include "gpio_control.h"
 #include "casa_module.h"
+#include "device_control.h"
 #include "casa_msg_parser.h"
 
-static const char *TAG = "MQTTS";
+static const char *TAG = "MQTT";
 
 
 #define IOT_MQTT_HOST         "agile-lime-alpaca.rmq6.cloudamqp.com"
@@ -37,8 +39,6 @@ static const char *TAG = "MQTTS";
 #define IS_MESSAGE_RETAINED   0
 #define IS_CLEAN_SESSION      1
 
-#define LAST_WILL_TOPIC       "device/lwt"
-#define LAST_WILL_MESSAGE     "Device disconnected"
 #define QOS_OF_LAST_WILL      1
 #define IS_LAST_WILL_RETAINED 1
 
@@ -83,10 +83,12 @@ static volatile uint32_t mqtt_rx_drop_count = 0;
 
 bool device_status_report = 1;
 extern casa_context_t casa_ctx;
-
+extern sl_si91x_gpio_pin_config_t load_gpio_cfg[];
 bool mqtt_connection_check = false;
 bool ssl_connection_error = false;
 extern bool internet_status;
+extern casa_wifi_status_t casa_wifi_status;
+extern device_control_context_t device_control;
 extern float fw_version;
 
 const unsigned char mycacert[] =
@@ -321,6 +323,8 @@ bool mqtt_secure_config(bool input)
     return false;
   }
 
+  construct_mqtt_lastwill_msg(MQTT_OFFLINE, lastwill_buf);
+
   mqtt_client_config.credential_id               = SL_NET_MQTT_CLIENT_CREDENTIAL_ID(0);
   mqtt_client_config.is_clean_session            = IS_CLEAN_SESSION;
   mqtt_client_config.client_id                   = (uint8_t *)casa_ctx.uniqueid;
@@ -338,10 +342,10 @@ bool mqtt_secure_config(bool input)
   mqtt_broker_config.keep_alive_interval         = KEEP_ALIVE_INTERVAL;
   mqtt_broker_config.keep_alive_retries          = MQTT_KEEPALIVE_RETRIES;
 
-  last_will_message.will_topic                   = (uint8_t *)LAST_WILL_TOPIC;
-  last_will_message.will_topic_length            = strlen(LAST_WILL_TOPIC);
-  last_will_message.will_message                 = (uint8_t *)LAST_WILL_MESSAGE;
-  last_will_message.will_message_length          = strlen(LAST_WILL_MESSAGE);
+  last_will_message.will_topic                   = (uint8_t *)mqtt_pub_lastWill_topic;
+  last_will_message.will_topic_length            = strlen(mqtt_pub_lastWill_topic);
+  last_will_message.will_message                 = (uint8_t *)lastwill_buf;
+  last_will_message.will_message_length          = strlen(lastwill_buf);
   last_will_message.will_qos_level               = QOS_OF_LAST_WILL;
   last_will_message.is_retained                  = IS_LAST_WILL_RETAINED;
 
@@ -407,10 +411,17 @@ bool mqtt_app_start(void)
   int retry_count = 0;
   while (retry_count < MQTT_CONN_RETRY_LIMIT) {
       if(mqtt_connection_check) {
+          casa_ctx.switch_interrupts = DISABLE;
           LOG_INFO("MQTT", "MQTT Connected");
           sl_mqtt_client_subscribe(&mqtt_client, (uint8_t *)mqtt_sub_topic, strlen(mqtt_sub_topic), QOS_OF_SUBSCRIPTION, 0, mqtt_message_callback, NULL);
           LOG_INFO("MQTT", "Subscriptions processed");
           log_mem_snapshot("MQTT start - connected and subscribed");
+          if(casa_ctx.reg_status == REGISTRATION_DONE) {
+              construct_mqtt_lastwill_msg(MQTT_ONLINE, lastwill_buf);
+              Mqtt_publish(mqtt_pub_lastWill_topic, lastwill_buf);
+              sl_gpio_driver_set_pin(&load_gpio_cfg[0].port_pin);
+          }
+          casa_ctx.switch_interrupts = ENABLE;
           return true;
       } else {
           LOG_INFO("MQTT", "MQTT Trying to connect...");
@@ -520,6 +531,30 @@ void construct_mqtt_device_log_pub_topic(void)
     LOG_INFO("MQTT", "MQTT CASA Device log publish topic : %s", device_log_topic_pub);
 }
 
+void construct_mqtt_lastwill_msg(int status_dev, char last_will[DEVICE_STATUS_JSON_LEN])
+{
+    memset(last_will, '\0', DEVICE_STATUS_JSON_LEN);
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddNumberToObject(root, "optCode", LASTWILL_MSG);
+    cJSON_AddStringToObject(root, "deviceId", casa_ctx.uniqueid);
+    cJSON_AddStringToObject(root, "userId", casa_ctx.userid);
+    cJSON_AddStringToObject(root, "locId", casa_ctx.location);
+    cJSON_AddNumberToObject(root, "status", status_dev);
+    if( MQTT_ONLINE == status_dev) {
+        cJSON_AddStringToObject(root, "ip", (char *) casa_wifi_status.ip_str );
+        cJSON_AddStringToObject(root, "ssid", (char *)casa_wifi_status.ssid);
+        cJSON_AddNumberToObject(root, "ss", casa_wifi_status.rssi);
+        cJSON_AddNumberToObject(root, "sec", casa_ctx.secure_device);
+    }
+
+    char* json = cJSON_Print(root);
+    cJSON_Delete(root);
+    cJSON_Minify(json);
+    strcpy(last_will,json);
+    free(json);
+    LOG_INFO(TAG, "last will msg : %s",(char *)last_will);
+}
+
 void construct_unsecure_mqtt_sub_pub_topic(void)
 {
     memset(fota_tls_topic_pub, '\0', MQTT_TOPIC_LEN);         /* SSL FOTA update Subscribing topic : "/device_id/set/fota_check" */
@@ -550,6 +585,28 @@ void construct_fota_update_request(char fota_avlb_buf[FOTA_UPDATE_AVAILABLE_JSON
     strcpy(fota_avlb_buf,json);
     LOG_INFO("MQTT", "constructed fota update request: %s",(char *)json);
     free(json);
+}
+
+void device_online_offline_status(long long requestid)
+{
+    char buf[MQTT_ONLINE_OFFLINE_JSON_LEN] = { 0 };
+    char mqtt_online_offline_topic[MQTT_ONLINE_OFFLINE_TOPIC_LEN] = { 0 };
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddNumberToObject(root, "reqId", requestid);
+    cJSON_AddNumberToObject(root, "optCode", ONLINE_OFFLINE_STATUS);
+    cJSON_AddStringToObject(root, "dId", casa_ctx.uniqueid);
+    cJSON_AddStringToObject(root, "uId", casa_ctx.userid);
+
+    char* json = cJSON_Print(root);
+    cJSON_Delete(root);
+    cJSON_Minify(json);
+    strcpy(buf,json);
+    free(json);
+
+    LOG_INFO("TAG","device online offline status JSON : %s",(char *)buf);
+    sprintf(mqtt_online_offline_topic, "/%s/%s/status", casa_ctx.userid, casa_ctx.uniqueid);
+    Mqtt_publish(mqtt_online_offline_topic, buf);
 }
 
 void unsecure_fota_check(void)
@@ -608,4 +665,43 @@ void send_timer_resp(long long requestid, int type, int node, int status)
     LOG_INFO(TAG, "Timer status responce: %s",(char *)json);
     Mqtt_publish(mqtt_pub_topic, json);
     free(json);
+}
+
+void send_device_status(long long requestid)
+{
+    memset(&device_control,'\0',sizeof(device_control));
+    memset(device_control.msg_from, '\0', CONTROL_MSG_FROM_LEN);
+    strcpy(device_control.msg_from, MANUAL_CONTROL);
+    device_control.requestId = requestid;
+    device_control.call_type = 1;
+    device_control.endpoints_counter = NO_OF_ENDPOINTS;
+    construct_status_update_json();
+    memset(&device_control,'\0',sizeof(device_control));
+    casa_ctx.current_operation = CASA_IDLE;
+
+    if(mqtt_connection_check == true) {
+//        fota_status_check();
+        sl_gpio_driver_set_pin(&load_gpio_cfg[0].port_pin);
+        device_status_report = 0;
+
+//        if(casa_ctx.Reset_reason != 0) {
+//            for(int idx = 1; idx <= NO_OF_ENDPOINTS; idx++)
+//            {
+//                if(get_timer_control(idx)){
+//                    send_timer_resp(0, 2, idx, 2);
+//                    set_timer_control(idx,0);
+//                }
+//            }
+//            casa_ctx.Reset_reason = 0;
+//        } else {
+//            for(int idx = 1; idx <= NO_OF_ENDPOINTS; idx++)
+//            {
+//                if(timer_ctrl_status[idx-1] == true){
+//                    send_timer_resp(0,2, idx ,3);
+//                    set_timer_control(idx,0);
+//                    timer_ctrl_status[idx-1] = false;
+//                }
+//            }
+//        }
+    }
 }

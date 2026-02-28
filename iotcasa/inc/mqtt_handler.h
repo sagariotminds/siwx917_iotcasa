@@ -13,6 +13,9 @@
 #define  FOTA_TLS_TOPIC_SUB              "/set/fota_check"          /* Fota tls topic subscription for unsecure fota   */
 #define  FOTA_TLS_TOPIC_PUB              "/report/fota_check"       /* Fota tls topic publish for unsecure fota */
 
+#define  MQTT_OFFLINE                    0                          /* MQTT cloud in offline mode */
+#define  MQTT_ONLINE                     1                          /* MQTT cloud in online mode */
+
 #define  MQTT_TOPIC_LEN                  200                        /* MQTT topic buffer maximum length */
 #define  LASTWILL_TOPIC_LEN              45                         /* MQTT last will topic maximum length */
 #define  SUPPORT_TOPIC_LEN               50                         /* MQTT Support topic maximum length */
@@ -20,6 +23,8 @@
 #define  DEVICE_STATUS_JSON_LEN          250                        /* Device status buffer length */
 #define  FOTA_UPDATE_AVAILABLE_JSON_LEN  200                        /* Fota update available json maximum length */
 #define  MQTT_TOPIC_LEN                  200                        /* MQTT topic buffer maximum length */
+#define  MQTT_ONLINE_OFFLINE_JSON_LEN    200                        /* Mqtt online offline json max length */
+#define  MQTT_ONLINE_OFFLINE_TOPIC_LEN   100                        /* Mqtt online offline topic length */
 
 
 void mqtt_app_close(void);
@@ -67,6 +72,14 @@ void construct_mqtt_device_log_pub_topic(void);
  */
 void construct_mqtt_lastwill_msg(int status_dev, char json[DEVICE_STATUS_JSON_LEN]);
 
+/**
+ * @brief     Send device status JSON and Check fota update status.
+ * @param[in] requestid Request ID.
+ * @return    None
+ */
+void send_device_status(long long requestid);
+
+void device_online_offline_status(long long requestid);
 void unsecure_fota_check(void);
 void send_timer_resp(long long requestid, int type, int node, int status);
 void log_mem_snapshot(const char *phase);

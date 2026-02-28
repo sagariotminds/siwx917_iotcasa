@@ -45,6 +45,7 @@ sl_net_wifi_client_profile_t casa_sta_profile;
 static volatile bool is_wifi_connected = false;
 casa_wifi_status_t casa_wifi_status = {0};
 extern casa_context_t casa_ctx;
+extern bool mqtt_connection_check;
 bool internet_status = false;
 bool wifi_connected = false;  // Track previous connection state
 osThreadId_t wifiConnectHandle = NULL;
@@ -430,6 +431,8 @@ void wifi_sta_monitor_task(void *argument)
               LOG_WARN("WIFI", "Link Lost or IP Invalid. Clearing status...");
               station_wifi_status_clear();
               wifi_connected = false;
+              mqtt_connection_check = 0;
+              casa_ctx.mqtt_ssl_connection = 0;
           }
           
           internet_status = 0;

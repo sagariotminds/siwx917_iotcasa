@@ -5,11 +5,14 @@
  *      Author: User
  */
 
-#include <casa_log.h>
-#include "casa_msg_parser.h"
+#include "casa_log.h"
 #include "casa_module.h"
 #include "registration.h"
+#include "mqtt_handler.h"
+#include "gpio_control.h"
+#include "eeprom_manage.h"
 #include "device_control.h"
+#include "casa_msg_parser.h"
 
 static const char *TAG = "PARSE";
 
@@ -483,6 +486,45 @@ int casa_message_parser(char *casa_req, int Req_length)
               } else {
                   return FAIL;
               }
+              break;
+          }
+          case GET_ONLINE_OFFLINE_STATUS:
+          {
+              device_online_offline_status(cJSON_GetObjectItem(root, "reqId")->valuedouble);
+              cJSON_Delete(root);
+              casa_ctx.current_operation = CASA_IDLE;
+              break;
+          }
+          case SWITCH_OPERATION_CHANGE:
+          {
+              int state = cJSON_GetObjectItem(root, "mode")->valueint;
+              set_eeprom_switch_state_info(state);
+              send_switch_mode_json_response(cJSON_GetObjectItem(root, "reqId")->valuedouble);
+              cJSON_Delete(root);
+              casa_ctx.current_operation = CASA_IDLE;
+              break;
+          }
+          case SECURE_DEVICE:
+          {
+              int sec = cJSON_GetObjectItem(root, "sec")->valueint;
+              set_eeprom_secure_device_info(sec);
+              send_secure_device_resp(cJSON_GetObjectItem(root, "reqId")->valuedouble);
+              cJSON_Delete(root);
+              casa_ctx.current_operation = CASA_IDLE;
+              break;
+          }
+          case GET_DEVICE_STATUS:
+          {
+              construct_device_status_resp(cJSON_GetObjectItem(root, "requestId")->valuedouble);
+              cJSON_Delete(root);
+              casa_ctx.current_operation = CASA_IDLE;
+              break;
+          }
+          case ONLINE_RESP:
+          {
+              send_device_status(cJSON_GetObjectItem(root, "reqId")->valuedouble);
+              cJSON_Delete(root);
+              casa_ctx.current_operation = CASA_IDLE;
               break;
           }
 
