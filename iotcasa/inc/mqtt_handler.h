@@ -20,7 +20,7 @@
 #define  LASTWILL_TOPIC_LEN              45                         /* MQTT last will topic maximum length */
 #define  SUPPORT_TOPIC_LEN               50                         /* MQTT Support topic maximum length */
 #define  LOG_TPOIC_LEN                   85                         /* device log publish topic length */
-#define  DEVICE_STATUS_JSON_LEN          250                        /* Device status buffer length */
+#define  DEVICE_STATUS_JSON_LEN          200                        /* Device status buffer length */
 #define  FOTA_UPDATE_AVAILABLE_JSON_LEN  200                        /* Fota update available json maximum length */
 #define  MQTT_TOPIC_LEN                  200                        /* MQTT topic buffer maximum length */
 #define  MQTT_ONLINE_OFFLINE_JSON_LEN    200                        /* Mqtt online offline json max length */
@@ -70,7 +70,7 @@ void construct_mqtt_device_log_pub_topic(void);
  * @param[in] json Last will data buffer array pointer.
  * @return    None
  */
-void construct_mqtt_lastwill_msg(int status_dev, char json[DEVICE_STATUS_JSON_LEN]);
+void construct_mqtt_lastwill_msg(bool status_dev, char json[DEVICE_STATUS_JSON_LEN]);
 
 /**
  * @brief     Send device status JSON and Check fota update status.

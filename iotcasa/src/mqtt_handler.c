@@ -288,6 +288,7 @@ bool mqtt_secure_config(bool input)
   mqtt_connection_check = false; // Reset flag on start
 
   if(input){
+    sl_net_delete_credential( SL_NET_TLS_SERVER_CREDENTIAL_ID(CERTIFICATE_INDEX), SL_NET_SIGNING_CERTIFICATE);
     status = sl_net_set_credential( SL_NET_TLS_SERVER_CREDENTIAL_ID(CERTIFICATE_INDEX), SL_NET_SIGNING_CERTIFICATE, mycacert, sizeof(mycacert) - 1);
     if (status != SL_STATUS_OK) {
         LOG_ERROR("MQTT", "CA certificate load failed: 0x%lx", status);
@@ -315,6 +316,7 @@ bool mqtt_secure_config(bool input)
   memcpy(client_credentials->data, USERNAME, strlen(USERNAME));
   memcpy(client_credentials->data + strlen(USERNAME), PASSWORD, strlen(PASSWORD));
 
+  sl_net_delete_credential( SL_NET_MQTT_CLIENT_CREDENTIAL_ID(0), SL_NET_MQTT_CLIENT_CREDENTIAL);
   status = sl_net_set_credential(SL_NET_MQTT_CLIENT_CREDENTIAL_ID(0), SL_NET_MQTT_CLIENT_CREDENTIAL, client_credentials, len);
   if (status != SL_STATUS_OK) {
     LOG_ERROR("MQTT", "MQTT credentials load failed: 0x%lx", status);
@@ -430,7 +432,6 @@ bool mqtt_app_start(void)
       }
   }
   return false;
-
 }
 
 void mqtt_reconnection_check(void *arg)
@@ -531,16 +532,16 @@ void construct_mqtt_device_log_pub_topic(void)
     LOG_INFO("MQTT", "MQTT CASA Device log publish topic : %s", device_log_topic_pub);
 }
 
-void construct_mqtt_lastwill_msg(int status_dev, char last_will[DEVICE_STATUS_JSON_LEN])
+void construct_mqtt_lastwill_msg(bool status_dev, char last_will[DEVICE_STATUS_JSON_LEN])
 {
     memset(last_will, '\0', DEVICE_STATUS_JSON_LEN);
     cJSON *root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "optCode", LASTWILL_MSG);
     cJSON_AddStringToObject(root, "deviceId", casa_ctx.uniqueid);
-    cJSON_AddStringToObject(root, "userId", casa_ctx.userid);
-    cJSON_AddStringToObject(root, "locId", casa_ctx.location);
     cJSON_AddNumberToObject(root, "status", status_dev);
     if( MQTT_ONLINE == status_dev) {
+        cJSON_AddStringToObject(root, "userId", casa_ctx.userid);
+        cJSON_AddStringToObject(root, "locId", casa_ctx.location);
         cJSON_AddStringToObject(root, "ip", (char *) casa_wifi_status.ip_str );
         cJSON_AddStringToObject(root, "ssid", (char *)casa_wifi_status.ssid);
         cJSON_AddNumberToObject(root, "ss", casa_wifi_status.rssi);

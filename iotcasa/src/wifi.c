@@ -437,17 +437,17 @@ void wifi_sta_monitor_task(void *argument)
           
           internet_status = 0;
 
-          sl_net_down(SL_NET_WIFI_CLIENT_INTERFACE);
-          osDelay(2000);
+//          sl_net_down(SL_NET_WIFI_CLIENT_INTERFACE);
+//          osDelay(2000);
 
-          sl_status_t status = sl_net_set_profile(SL_NET_WIFI_CLIENT_INTERFACE, CASA_WIFI_PROFILE_ID, (const sl_net_profile_t *)&casa_sta_profile);
-
-          if (status != SL_STATUS_OK) {
-              LOG_ERROR("WIFI", "Profile Re-set failed: 0x%lx", status);
-          }
-
-          // Step C: Attempt Rejoin
-          LOG_INFO("WIFI", "Attempting Rejoin to: %s", casa_sta_profile.config.ssid.value);
+//          sl_status_t status = sl_net_set_profile(SL_NET_WIFI_CLIENT_INTERFACE, CASA_WIFI_PROFILE_ID, (const sl_net_profile_t *)&casa_sta_profile);
+//
+//          if (status != SL_STATUS_OK) {
+//              LOG_ERROR("WIFI", "Profile Re-set failed: 0x%lx", status);
+//          }
+//
+//          // Step C: Attempt Rejoin
+//          LOG_INFO("WIFI", "Attempting Rejoin to: %s", casa_sta_profile.config.ssid.value);
           log_mem_snapshot("WIFI reconnect - before sl_net_up");
           sl_status_t join_status = sl_net_up(SL_NET_WIFI_CLIENT_INTERFACE, CASA_WIFI_PROFILE_ID);
 
