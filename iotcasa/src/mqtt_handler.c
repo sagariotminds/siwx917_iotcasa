@@ -82,6 +82,7 @@ static volatile uint8_t mqtt_rx_count = 0;
 static volatile uint32_t mqtt_rx_drop_count = 0;
 
 bool device_status_report = 1;
+uint16_t device_status_report_counter = 0;
 extern casa_context_t casa_ctx;
 extern sl_si91x_gpio_pin_config_t load_gpio_cfg[];
 bool mqtt_connection_check = false;
@@ -164,6 +165,8 @@ void mqtt_message_callback(void *client, sl_mqtt_client_message_t *message, void
   UNUSED_PARAMETER(client);
   UNUSED_PARAMETER(context);
 
+  printf("Topic : %s\r\n",message->topic);
+  printf("Received JSON :: %s\r\n",message->content);
   if ((message == NULL) || (message->content == NULL) || (message->content_length == 0)) {
             return;
         }
@@ -415,7 +418,8 @@ bool mqtt_app_start(void)
       if(mqtt_connection_check) {
           casa_ctx.switch_interrupts = DISABLE;
           LOG_INFO("MQTT", "MQTT Connected");
-          sl_mqtt_client_subscribe(&mqtt_client, (uint8_t *)mqtt_sub_topic, strlen(mqtt_sub_topic), QOS_OF_SUBSCRIPTION, 0, mqtt_message_callback, NULL);
+//          sl_mqtt_client_subscribe(&mqtt_client, (uint8_t *)mqtt_sub_topic, strlen(mqtt_sub_topic), QOS_OF_SUBSCRIPTION, 0, mqtt_message_callback, NULL);
+          sl_mqtt_client_subscribe(&mqtt_client, (uint8_t *)"/+/set/+/gateway_id/001C5558", strlen("/+/set/+/gateway_id/001C5558"), QOS_OF_SUBSCRIPTION, 0, mqtt_message_callback, NULL);
           LOG_INFO("MQTT", "Subscriptions processed");
           log_mem_snapshot("MQTT start - connected and subscribed");
           if(casa_ctx.reg_status == REGISTRATION_DONE) {
@@ -439,7 +443,7 @@ void mqtt_reconnection_check(void *arg)
   (void)arg;
 //  uint32_t counter = 0;
   uint32_t slow_loop_timer = 0;
-//  sl_mqtt_client_message_t publish_message;
+  uint8_t status_pub_count = 0;
 
   while(true) {
       // --- SECTION 1: FAST LOGIC (Executes every 50ms) ---
@@ -447,7 +451,7 @@ void mqtt_reconnection_check(void *arg)
       // Handle Incoming Messages immediately
       if(mqtt_connection_check && (mqtt_rx_count > 0)) {
           log_mem_snapshot("MQTT JSON - start");
-          printf("received JSON : %s\r\n", mqtt_rx_parse_queue[mqtt_rx_tail]);
+          printf("#############################Received JSON : %s\r\n", mqtt_rx_parse_queue[mqtt_rx_tail]);
           if (!casa_message_parser(mqtt_rx_parse_queue[mqtt_rx_tail], (int)mqtt_rx_len_queue[mqtt_rx_tail])) {
               LOG_ERROR("MQTT", "MQTT payload parser failed");
           }
@@ -474,6 +478,24 @@ void mqtt_reconnection_check(void *arg)
               log_mem_snapshot("MQTT reconnect - before start");
               mqtt_app_start();
               log_mem_snapshot("MQTT reconnect - after start");
+              if (mqtt_connection_check == true) {
+                  device_status_report = 1;
+              }
+          }
+      }
+
+      if(device_status_report ){
+          device_status_report_counter += 5;
+          if(device_status_report_counter >= 300 && mqtt_connection_check && casa_ctx.reg_status) {
+              construct_mqtt_lastwill_msg(MQTT_ONLINE, lastwill_buf);
+              Mqtt_publish(mqtt_pub_lastWill_topic, lastwill_buf);
+              device_status_report_counter = 0;
+              status_pub_count ++;
+          }
+
+          if(status_pub_count >= 3){
+              device_status_report = 0;
+              status_pub_count = 0;
           }
       }
       osDelay(10);
